@@ -81,7 +81,7 @@ rm(list=c("impute_mat"))
 ##   1) to impute the (relatively small) number of "missing" data
 ##   2) calculate surrogate measures based on PCA 
 X        <- as.matrix(accel_mat[,paste0("MIN",1:1440)])
-fit_fpca <- fpca.face(lX, knots=50)
+fit_fpca <- fpca.face(log(1+X), knots=50)
 
 ## impute missing acceleration data among good days using fpca predicted values
 ## truncate below by 0 since ENMO is bounded below by 0 by definition
