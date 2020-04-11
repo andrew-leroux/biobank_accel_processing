@@ -81,7 +81,7 @@ rm(list=c("impute_mat"))
 ##   1) to impute the (relatively small) number of "missing" data
 ##   2) calculate surrogate measures based on PCA 
 X        <- as.matrix(accel_mat[,paste0("MIN",1:1440)])
-fit_fpca <- fpca.face(log(1+X), knots=50)
+fit_fpca <- fpca.face(lX, knots=50)
 
 ## impute missing acceleration data among good days using fpca predicted values
 ## truncate below by 0 since ENMO is bounded below by 0 by definition
@@ -89,7 +89,7 @@ inx_na    <- is.na(X)
 X[inx_na] <- pmax(0,exp(fit_fpca$Yhat[inx_na]) + 1)
 rm(list=c("fit_fpca", "inx_na"))
 
-
+lX       <- log(1+X)
 #########################################
 # Calculate scalar features of interest #
 #########################################
@@ -104,26 +104,26 @@ rm(list=c("fit_fpca", "inx_na"))
 features_mat <- 
   accel_mat %>% 
   dplyr::select(-one_of(c(paste0("MIN",1:1440))))
+
 features_mat$TAC <- rowSums(X)
-features_mat$TLAC <- rowSums(log(1+X))
+features_mat$TLAC <- rowSums(lX)
 features_mat$Sed_Mins <- rowSums(X < 30)
 features_mat$MVPA_Mins <- rowSums(X >= 100)
 features_mat$LIPA_Mins <- rowSums(X < 100 & X >= 30)
-features_mat$DARE      <- rowSums(X[,481:1200])/rowSums(X)
+features_mat$DARE      <- rowMeans(lX[,481:1200])/(rowMeans(lX[,481:1200]) + rowMeans(lX[,-c(481:1200)]))
 
 ## calcualte log acceleration accumulated in each 2-hour window of the day
 tlen       <- 120
 nt         <- floor(1440/tlen)
 # create a list of indices for binning into 2-hour windows
 inx_col_ls <- split(1:1440, rep(1:nt,each=tlen))
-X_2hr      <- sapply(inx_col_ls, function(x) rowSums(log(1+X[,x,drop=FALSE])))
+X_2hr      <- sapply(inx_col_ls, function(x) rowSums(lX[,x]))
 colnames(X_2hr) <- paste0("TLAC_",c(1:12))
 
 features_mat <- data.frame(features_mat, X_2hr)
 rm(tlen, nt, inx_col_ls, X_2hr)
 
 ## PC surrogate measures
-lX <- log(1+X)
 features_mat$PC1 <- rowMeans(lX[,(5*60+1):(24*60)])
 features_mat$PC2 <- rowMeans(lX[,(10*60+1):(24*60)]) - rowMeans(lX[,(5*60+1):(10*60)])
 features_mat$PC3 <- rowMeans(lX[,(8*60+1):(16*60)]) - rowMeans(lX[,c((5*60+1):(8*60), (16*60+1):(24*60))])
@@ -132,7 +132,6 @@ features_mat$PC5 <- rowMeans(lX[,c((8*60+1):(9*60), (14*60+1):(19*60))]) - rowMe
 features_mat$PC6 <- rowMeans(lX[,c((7*60+1):(9*60), (13*60+1):(17*60), (21*60+1):(24*60))]) - rowMeans(lX[,c( (5*60+1):(7*60), (9*60+1):(13*60), (17*60+1):(21*60))])
 features_mat$PC6_NHANES <- rowMeans(lX[,c((8*60+1):(10*60),(15*60+1):(17*60),(22*60+1):(24*60))]) - 
   rowMeans(lX[,c((5*60+1):( 7*60),(11*60+1):(13*60),(18*60+1):(20*60))])
-rm(lX)
 
 
 ## fragmentation measures
@@ -168,7 +167,7 @@ rm(aX, bout_mat)
 # create transpose of the log(1+acceleration)
 # we work with the transpose because colSums is MUCH faster than rowSums
 # even using colSums, this takes a LONG time to run
-tlX <- t(log(1+X))
+tlX <- t(lX)
 
 # create a list of indices for binning into 10- and 5- hour moving sums
 inx_10hr_ls <- lapply(1:(1440-10*60 + 1), function(x) x:(x+(10*60-1)))
@@ -246,6 +245,7 @@ accel_mat_ind <-
   accel_mat_ind %>% 
   left_join(accel_mat_t_vars_ind, by="eid") 
 
-
+## save data frame with day-level features
 write_rds(features_mat, path=file.path(data_path_processed, "accel_features.rds"))
+## save data frame with subject specific averages
 write_rds(accel_mat_ind, path=file.path(data_path_processed, "accel_features_ind.rds"))
