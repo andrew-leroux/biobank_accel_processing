@@ -1,0 +1,257 @@
+---
+title: "Processing the 5-second UKB Accelerometry Data"
+author: "Andrew Leroux"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    number_sections: true
+bibliography: ref.bib
+vignette: >
+  %\VignetteIndexEntry{Organizing the 5-second UKB Accelerometry Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval=FALSE)
+```
+
+# Organizing the 5-second Level UKB Accelerometry Data
+
+This vignette is intended to illustrate how to load, merge, and structure the 5-second level UK Biobank (UKB) accelerometry data in the 1440+ 
+format suggested by @Leroux2019 and then how to perform some basic analyses and derive some standard features of physical activity. 
+
+To begin, we first load a set of **R** packages for reading in data and data manipulation. 
+With the exception of the **lubridate** package used for manipulating date-time objects, the packages we use here are all associated with the *tidyverse*. In addition, we need to set the data path where the 5-second level data files are stored 
+
+NOTE: If processing the UKB accelerometry data locally, all code is self contained with the exception of setting the data path. Once you've changed this one line of code, all the remaining R code should run locally without any further changes. Importantly, this code assumes that the only files you have in this directory are 5-second level UKB accelerometry data. 
+
+```{r packages, echo=TRUE, message=FALSE}
+## If packages are not already installed, first install them and then 
+## load all requisite packages
+pckgs <- c("readr","tidyr","dplyr","lubridate","stringr")
+sapply(pckgs, function(x) if(!require(x,character.only=TRUE,quietly=TRUE)) {
+  install.packages(x)
+  require(x, character.only=TRUE)
+})
+## Source an R script which will create a data data path for 
+## where all the 5-second level data are stored
+## We sore this path as a character vector called "data_path_5sec"
+## This is the only line of code you should need to change to run locally
+source(file.path(".","code","make_data_directories.R"))
+## Obtain file names for all files in the directory
+data_5_sec_ls <- list.files(data_path_5sec)
+```
+
+The object *data_5_sec_ls* is a vector of file names.  naming convention for these files follows the following format:
+
+"subject id"_90004_0_0.csv.gz
+
+These files are compressed csv files. Note that Biobank randomizes subjects' identifiers for each individual application. Thus, no two groups will have identical subject ids. For our application, the first 5 files can be seen below
+
+```{r 5_ids, echo=TRUE, message=FALSE}
+data_5_sec_ls[1:5]
+```
+
+
+## Individual Data File Structure
+
+The 5-second level accelerometry data files for each subject contain two columns. 
+The first column contains the 5-second level acceleration metric where larger values correspond to more acceleration during the corresponding 5-second window. . 
+The second column contains a 0/1 indicator for whether or not that 5-second level data was imputed or derived using the observed data. 
+The column name associated with the first column provides information regarding the start and stop times of the data as well as the sampling rate. 
+
+
+
+
+```{r example_file, echo=TRUE, message=FALSE}
+accel_1 <- read.table(file.path(data_path,"intensity", data_5_sec_ls[1]), header=TRUE, sep=",")
+str(accel_1)
+summary(accel_1)
+```
+
+At a high level, the 
+For a detailed description of data pre-processing steps performed by the UKB as well as the UKB imputation procedure, please see @ukb_accel.
+
+
+
+
+## Transforming to wide (1440+) format: single subject
+
+Encoding time and sampling rate information in column names makes sese for individual files. 
+However, if we wish to load all subjects' data simultanesouly, this requires us to either (1) add columns corresponding to subject identifiers and observation times; or (2) store each subjects' data as distinct objects. 
+Option (1) increases the size of the data by a non-trivial margin and option (2) requires merging and possibly tranforming the data whenever working with summaries accross multiple subjects' data. Therefore, we follow the data storage 
+
+To tranfrom an individuals' data from long to wide format, we use regular expressions to parse the first column name to get sampling rate, start, and stop times. Then we transform the data to wide form where each row represents one subject-day 12AM-12AM
+
+```{r tranform_single_1440, echo=TRUE, message=FALSE}
+## get subject identifier (eid)
+eid_1 <- str_extract(data_5_sec_ls[1], "[0-9]+")
+
+## verify the sampling rate for the data is 5 seconds
+(interval_1 <- str_replace(names(accel_1)[1], "(.*sampleRate\\.+)([0-9]+\\.[aA-zZ]+)","\\2"))
+
+## get portion of the column names which indicates start and stop dates/times
+raw_date_1 <- str_extract_all(names(accel_1)[1], "\\.{3,3}([0-9]+\\.){5,5}[0-9]+")[[1]]
+## extract start and stop dates/times
+date_1     <- str_replace_all(raw_date_1, "\\.{3,3}","") %>% 
+                    str_replace_all("\\.","-") %>%
+                    str_replace_all("([0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})","\\1 \\2:\\3:\\4")
+## create a vector of date-times corresponding to observed data
+## note that we set the time zone to be UTC as the 5-second level data has already had 
+## time-zone information accounted for
+date_time_vec     <- seq(ymd_hms(date_1[1], tz="UTC"),ymd_hms(date_1[2], tz="UTC"), by="5 secs")
+date_time_vec_chr <- as.POSIXlt(date_time_vec, tz="UTC")
+  
+## separate out the date and time components of the date/time vector
+time_vec <- sprintf("%02d:%02d:%02d", hour(date_time_vec), minute(date_time_vec), second(date_time_vec))
+date_vec <- sprintf("%04d-%02d-%02d", year(date_time_vec), month(date_time_vec), day(date_time_vec))
+
+## combine aceleration and date data
+adf_1  <- data.frame("eid"=eid_1,"acceleration"=accel_1, time_vec, date_vec, stringsAsFactors = FALSE)
+## aggregate data to the minute level
+adf_1 <- adf_1 %>% 
+             ## group at the minute level
+             group_by(date_vec, time_vec) %>%
+             ## obtain mean and number of not imputed minutes
+             summarize("acceleration" = mean(acceleration,na.rm=TRUE),
+                      "imputed" = sum(1-imputed,na.rm=TRUE),
+                      "eid" = eid[1]) %>%
+             ungroup()
+  
+## transform to wide format for accelration and imputation separately using tidyr::spread
+accel_mat_1  <- adf_1 %>% select(-imputed) %>% spread(time_vec,acceleration)
+impute_mat_1 <- adf_1 %>% select(-acceleration) %>% spread(time_vec,imputed)
+```
+
+Once we have this first subjects' data in
+
+
+
+## Transforming to wide (1440+) format: all subjects
+
+We can wrap the code above in a for loop in order to transform all subjects data into wide format. 
+Then, we combine all subjects data acceleration and imputation data, separately, into two large matrices. 
+The code below will perform this transformation and merging, however it will take quite a long time to run due to the large number of subjects in the UK Biobank. 
+This code is easily parrallelized to run on either multiple cores, or submitted as a batch job on a computing cluster. 
+
+```{r tranform_all_1440, echo=TRUE, message=FALSE}
+## Indicate the directory where all the 5-second level data are stored
+## This is the only line of code you should need to change to run locally
+data_path     <- "/dcl01/chatterj/data/ukbiobank/phenotype/accelerometer/"
+## Obtain file names for all files in the directory
+data_5_sec_ls <- list.files(file.path(data_path,"intensity"))
+
+## total number of subejcts to loop over 
+nid <- length(data_5_sec_ls)
+## extract all subject ids
+eid <- str_extract(data_5_sec_ls, "[0-9]+")
+
+## create vector of names for wide-format data 
+accel_mat_nms  <- paste0("accel_mat_",1:nid)
+impute_mat_nms <- paste0("impute_mat_",1:nid)
+
+## loop over subjects
+for(i in 1:nid){
+  
+  ## read in subject i's data
+  accel_i <- read.table(file.path(data_path,"intensity", data_5_sec_ls[i]), header=TRUE, sep=",")
+  
+  ## verify the sampling rate for the data is 5 seconds
+  (interval_i <- str_replace(names(accel_i)[1], "(.*sampleRate\\.+)([0-9]+\\.[aA-zZ]+)","\\2"))
+  if(interval_i != "5.seconds") next
+  
+  ## get portion of the column names which indicates start and stop dates/times
+  raw_date_i <- str_extract_all(names(accel_i)[1], "\\.{3,3}([0-9]+\\.){5,5}[0-9]+")[[1]]
+  ## extract start and stop dates/times
+  date_i     <- str_replace_all(raw_date_i, "\\.{3,3}","") %>% 
+                      str_replace_all("\\.","-") %>%
+                      str_replace_all("([0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})","\\1 \\2:\\3:\\4")
+  ## create a vector of date-times corresponding to observed data
+  ## note that we set the time zone to be UTC as the 5-second level data has already had 
+  ## time-zone information accounted for
+  date_time_vec     <- seq(ymd_hms(date_i[1], tz="UTC"),ymd_hms(date_i[2], tz="UTC"), by="5 secs")
+  date_time_vec_chr <- as.POSIXlt(date_time_vec, tz="UTC")
+  
+  # ## separate out the date and time components of the date/time vector
+  time_vec <- sprintf("%02d:%02d:%02d",hour(date_time_vec), minute(date_time_vec), second(date_time_vec))
+  date_vec <- sprintf("%04d-%02d-%02d",year(date_time_vec), month(date_time_vec),day(date_time_vec))
+
+  ## combine aceleration and date data
+  adf_i  <- data.frame("eid"=eid[i], "acceleration"=accel_i, time_vec, date_vec, stringsAsFactors = FALSE)
+  ## aggregate data to the minute level
+  adf_i <- adf_i %>% 
+             ## group at the minute level
+             group_by(date_vec, time_vec) %>%
+             ## obtain mean and number of not imputed minutes
+             summarize("acceleration" = mean(acceleration,na.rm=TRUE),
+                      "imputed" = sum(1-imputed,na.rm=TRUE),
+                      "eid" = eid[1]) %>%
+             ungroup()
+
+  ## transform to wide format for accelration and imputation separately using tidyr::spread
+  accel_mat_i  <- adf_i %>% select(-imputed) %>% spread(time_vec,acceleration)
+  impute_mat_i <- adf_i %>% select(-acceleration) %>% spread(time_vec,imputed)
+  
+  
+  ## assign subject i's data to the corresponding names 
+  assign(accel_mat_nms[i], accel_mat_i)
+  assign(impute_mat_nms[i], impute_mat_i)
+ 
+  ## clear up the workspace a bit
+  rm(accel_i, interval_i, raw_date_i, date_i, 
+     date_time_vec,date_time_vec_chr,time_vec,date_vec,
+     adf_i,accel_mat_i, impute_mat_i)
+
+}
+
+## combine  acceleration and imputation data into single large matrices
+eval(parse(text=paste0("accel_mat <- rbind(", paste0(accel_mat_nms, collapse=","),")")))
+eval(parse(text=paste0("impute_mat <- rbind(", paste0(impute_mat_nms, collapse=","),")")))
+```
+
+
+
+
+# Basic Analyses using the transformed data
+
+Analyzing the transformed data involves first identifying "good" accelerometry data, calculating features of interest, and then associating those features with 
+one or more variables of interest. Below we present our approach to identifying good accelerometry data in the UK Biobank using the processed 5-second level data which we aggregated at the minute level above, and then 
+
+
+## Subsetting to "good" accelerometry data
+
+Identifying "good" accelerometry data typically has two major components. 
+The first component is to determine whether the data are reliable (i.e. was the device appropriately calibrated). 
+Once the a particular devices' data has been deemed "reliable", one then identifies participant complinace with weartime protocols. 
+Here, we opt for a conservative definition of "reliable" data based on variables derived from the UK Biobank team. 
+
+
+```{r identify_good_accel_data, echo=TRUE, message=FALSE}
+
+
+```
+
+
+## Exploratory plots of daily activity profiles
+
+
+```{r plot_PA_profiles, echo=TRUE, message=FALSE}
+
+
+```
+
+
+## Calculating scalar summaries of activity profiles
+
+
+```{r calculate_scalar_summaries, echo=TRUE, message=FALSE}
+
+
+```
+
+
+
+# References
