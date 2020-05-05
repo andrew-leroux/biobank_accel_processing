@@ -15,7 +15,7 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval=FALSE)
+knitr::opts_chunk$set(echo = TRUE, eval=TRUE)
 ```
 
 # Organizing the 5-second Level UKB Accelerometry Data
@@ -28,7 +28,7 @@ With the exception of the **lubridate** package used for manipulating date-time 
 
 NOTE: If processing the UKB accelerometry data locally, all code is self contained with the exception of setting the data path. Once you've changed this one line of code, all the remaining R code should run locally without any further changes. Importantly, this code assumes that the only files you have in this directory are 5-second level UKB accelerometry data. 
 
-```{r packages, echo=TRUE, message=FALSE, eval=TRUE}
+```{r packages, message=FALSE}
 ## If packages are not already installed, first install them and then 
 ## load all requisite packages
 pckgs <- c("readr","tidyr","dplyr","lubridate","stringr")
@@ -51,7 +51,7 @@ The object *data_5_sec_ls* is a vector of file names.  naming convention for the
 
 These files are compressed csv files. Note that Biobank uses different subject identifiers for each individual application. Thus, no two groups will have identical subject ids. For our application, the first 5 files can be seen below
 
-```{r 5_ids, echo=TRUE, message=FALSE, eval=TRUE}
+```{r 5_ids,}
 data_5_sec_ls[1:5]
 ```
 
@@ -63,7 +63,7 @@ The 5-second level data are stored as separate zipped .csv files for each partic
 
 
 
-```{r example_file, echo=TRUE, message=FALSE, eval=TRUE}
+```{r example_file}
 accel_1 <- read.table(file.path(data_path_5sec, data_5_sec_ls[1]), header=TRUE, sep=",")
 str(accel_1)
 summary(accel_1)
@@ -99,7 +99,7 @@ Once the data has been aggregated at the minute level, we then transform the dat
 
 We illustrate the transforkmation from long to wide data first using one individuals' data. To transform an individuals' data from long to wide format, we use regular expressions to parse the first column name to get sampling rate, start, and stop times. Then we transform the data to wide form where each row represents one subject-day 12AM-12AM. Note that because of the very large number of subjects with accelerometry data in the UK Biobank, working with the 1440+ format for all subjects using their 5-second level data is computationally (RAM) infeasible. Thus, we aggregate the data at the minute level for all subjects, though this could be changed via a slight modification of the code below. 
 
-```{r tranform_single_1440, echo=TRUE, message=FALSE, eval=TRUE}
+```{r transform_single_1440}
 ## set up a vector of unique minutes 
 ## this will be used to ensure we have appropriate number of columns
 ## for all participants when we transform from long to wide
@@ -147,9 +147,10 @@ accel_mat_1  <- adf_1 %>% select(-imputed) %>% spread(time_vec,acceleration)
 impute_mat_1 <- adf_1 %>% select(-acceleration) %>% spread(time_vec,imputed)
 ```
 
-This results in two data matrices of equal dimensions corresponding to an individual's average acceleration (modified ENMO) in mili gravitational units and the total number of *non* imputed 5-second intervals within each minute as can be seen below. The number of columns for all participants will be 1442 where the first two columns are date of wear and subject eid and the remaining columns are acceleration/imputation indicators for the 1440 minutes of the day (12AM-12AM). We print the structure of the first 10 columns of both the acceleration and imputation matrices for this one subject below. 
+This results in two data matrices of equal dimensions corresponding to an individual's average acceleration (modified ENMO) in mili gravitational units and the total number of *non* imputed 5-second intervals within each minute as can be seen below. The number of columns for all participants will be 1442 where the first two columns are date of wear and subject eid and the remaining columns are acceleration/imputation indicators for the 1440 minutes of the day (12AM-12AM). We print the structure of the first 12 columns of both the acceleration and imputation matrices for this one subject below (12:00-12:10AM across all 8 calendar days). 
 
 A few key obervations from the imputation matrix: 
+
 * The first day (first row) of data has missing data (NA) in the first few columns. This is because the data start at 10AM on the first day of recording
 * The second day (second row)  of data has 0 imputed data during 12:00AM-12:10AM as indicated by the value "12" in 3-12 columns of the imputation matrix 
 * The third day (third row)  of data has all imputed data during 12:00AM-12:10AM as indicated by the value "0" in 3-12 columns of the imputation matrix 
@@ -157,9 +158,9 @@ A few key obervations from the imputation matrix:
 We conclude here by noting that the way the UK Biobank team imputed acceleration data was to take the average acceleration at that time of day using only non-imputed (estimated wear) data. As a result, you can see that 12:00-12:08AM on the third, fourth, and fifth days report identical values in the acceleration matrix (columns 3-10) and that these values are the average of the second, sixth, seventh, and eigth days' data (again, the first day is missing). 
 
 
-```{r explore_1_subj, eval=TRUE}
-print(str(accel_mat_1[,1:10]))
-print(str(impute_mat_1[,1:10]))
+```{r explore_1_subj}
+print(str(accel_mat_1[,1:12]))
+print(str(impute_mat_1[,1:12]))
 ```
 
 
@@ -167,9 +168,9 @@ print(str(impute_mat_1[,1:10]))
 
 We can wrap the code above in a for loop to transform all subject's data into wide format. 
 Then, we combine all subjects data acceleration and imputation data, separately, into two large matrices. 
-The code below will perform this transformation and merging, however it will take quite a long time to run due to the large number of subjects in the UK Biobank. This code is easily parallelized to run on either multiple cores, or submitted as a batch job on a computing cluster. 
+The code below will perform this transformation and merging, however it will take quite a long time to run due to the large number of subjects in the UK Biobank. This code is easily parallelized to run on either multiple cores, or submitted as a batch job on a computing cluster. Once the data have been transformed and merged, we would then save the merged data to avoid having to repeatedly re-process the data as this would be unnecessarily time consuming.
 
-```{r tranform_all_1440, echo=TRUE, message=FALSE}
+```{r tranform_all_1440, eval=FALSE}
 ## get file names for all 5-second level files in the directory
 data_5_sec_ls <- list.files(data_path_5sec)
 ## total number of subejcts to loop over 
@@ -247,26 +248,72 @@ eval(parse(text=paste0("impute_mat <- bind_rows(", paste0(impute_mat_nms, collap
 ```
 
 
+```{r load_processed_data, echo=FALSE}
+## load the processed data since we're not going to run the entire reporocessing in this vignette
+```
+
 
 
 # Analysis pipeline using the transformed data
 
-Analyzing the transformed data involves first identifying "good" accelerometry data, calculating features of interest, and then associating those features with 
-one or more variables of interest. Below we present our approach to identifying good accelerometry data in the UK Biobank using the processed 5-second level data which we aggregated at the minute level above, and then 
+Our proposed analysis pipeline involves three essential steps:
+
+1. Identify "good" accelerometry data
+2. Propose a method for handling imputed and/or missing data
+3. Calcuate features of interest (features could be scalar summaries, the full daily activity profiles, or something in-between)
+4. Associate these features with on or more variables of interest
+
+Steps 1-3 involve decisions specific to analyzing accelerometry data and the choices invovled are non-trivial. 
+In the interest of reproducibility and ease thereof, we propose a fairly straightforward method for identifying "good" accelerometry data which uses only the 5-second level data and UKB provided summary data. Below we present ssteps 1-3 of our pipeline, though we note that there are certainly other ways of addressing steps 1-3 above which are appropriate for a given analysis.  
 
 
-## Subsetting to "good" accelerometry data
+## Identify "good" accelerometry data
 
 Identifying "good" accelerometry data typically has two major components. 
 The first component is to determine whether the data are reliable (i.e. was the device appropriately calibrated). 
 Once the a particular devices' data has been deemed "reliable", one then identifies participant complinace with weartime protocols. 
-Here, we opt for a conservative definition of "reliable" data based on variables derived from the UK Biobank team. 
+
+Here, we opt for a conservative definition of "reliable" data based on variables derived from the UK Biobank team. Specifically, we use three UK Biobank derived variables which relate to accelerometry data quality which are described in the [data showcase](http://biobank.ndph.ox.ac.uk/showcase/) on the UK Biobank website. These varibales are: 
+
+1. [Data field 90015](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=90015): Did the sbject have at least 72 hours in each one hour period of the 24-hour cycle (across multiple days)
+2. [Data field 90016](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=90016): Was the data well calbirated?
+3. [Data field 90017](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=90017): Was the device calibrated using a subjects' own data?
+
+An individual is determined to have reliable data if the answer to each of the three above questions is yes. Because these variables are not included 
+in the 5-second level data, we do not have them in the transformed data frames. As such we need to merge them from a different data source. 
+The R script "make_data_directories.R" referenced at the beginning of this vignette contains a path where these data are stored (character vector "data_path_accel_quality_flags") and the name of the file (character vector "data_accel_quality_flags"). We provide some code which load,s merges, and subsets the data based on these criteria below. 
 
 
-```{r identify_good_accel_data, echo=TRUE, message=FALSE}
+```{r identify_good_accel_data_reliable}
+## read in data with data quality flags
+xdf     <- read_rds(file.path(data_path_accel_quality_flags, data_accel_quality_flags))
+# subset to just those individuals with "good" quality data as measured by UKB
+xdf <- xdf %>% 
+  mutate(
+    ## create an indicator of whether accelerometry data was deeemed "good" by UKB team
+    "good_accel_data_ukb" = invitation_to_physical_activity_study_acceptance %in% "Completed" &
+                            data_quality_good_wear_time %in% "Yes" &
+                            data_quality_good_calibration %in% "Yes" & 
+                            data_quality_calibrated_on_own_data %in% "Yes"
+      ) %>% 
+    filter(good_accel_data_ukb == TRUE)
+# number of rows is the number of participants who met these data quality criteria
+dim(xdf)
+```
+
+
+
+Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour wear time protocol. That is, participants were instructed to wear the devices continuously. As such, we determiend a "compliant" (i.e. good) calendar day of data as one where the participant was estimated to be wearing the device at least 95\% of the day (1368 minutes). Estimated wear time is calculated using Correspondingly, adherence 
+
+
+```{r identify_good_accel_data_weartime}
 
 
 ```
+
+
+## Propose a method for handling imputed and/or missing data
+
 
 
 ## Exploratory plots of daily activity profiles
