@@ -250,6 +250,8 @@ eval(parse(text=paste0("impute_mat <- bind_rows(", paste0(impute_mat_nms, collap
 
 ```{r load_processed_data, echo=FALSE}
 ## load the processed data since we're not going to run the entire reporocessing in this vignette
+accel_mat  <- read_rds(path=file.path(data_path_processed, "1min_accel.rds"))
+impute_mat <- read_rds(path=file.path(data_path_processed, "1min_impute.rds"))
 ```
 
 
