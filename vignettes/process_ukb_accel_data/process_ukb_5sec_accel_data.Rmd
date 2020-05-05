@@ -87,6 +87,11 @@ Option (1) increases the size of the data by a non-trivial margin and option (2)
 To tranfrom an individuals' data from long to wide format, we use regular expressions to parse the first column name to get sampling rate, start, and stop times. Then we transform the data to wide form where each row represents one subject-day 12AM-12AM
 
 ```{r tranform_single_1440, echo=TRUE, message=FALSE, eval=TRUE}
+## set up a vector of unique minutes 
+## this will be used to ensure we have appropriate number of columns
+## for all participants when we transform from long to wide
+utimes <- sprintf("%02d:%02d", rep(0:23, each=60), rep(0:59, 24))
+
 ## get subject identifier (eid)
 eid_1 <- str_extract(data_5_sec_ls[1], "[0-9]+")
 
@@ -107,10 +112,13 @@ date_time_vec_chr <- as.POSIXlt(date_time_vec, tz="UTC")
   
 ## separate out the date and time components of the date/time vector
 time_vec <- sprintf("%02d:%02d:%02d", hour(date_time_vec), minute(date_time_vec), second(date_time_vec))
+time_vec <- factor(time_vec, levels = utimes)
 date_vec <- sprintf("%04d-%02d-%02d", year(date_time_vec), month(date_time_vec), day(date_time_vec))
 
 ## combine aceleration and date data
 adf_1  <- data.frame("eid"=eid_1,"acceleration"=accel_1, time_vec, date_vec, stringsAsFactors = FALSE)
+## rename the acceleration column 
+colnames(adf_i)[2] <- "acceleration"
 ## aggregate data to the minute level
 adf_1 <- adf_1 %>% 
              ## group at the minute level
