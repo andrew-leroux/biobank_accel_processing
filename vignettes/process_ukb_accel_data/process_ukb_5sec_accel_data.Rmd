@@ -311,10 +311,6 @@ Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour we
 
 
 ```{r identify_good_accel_data_weartime}
-## re-name acceleration columns to be easier to work with in matrix/data frame operations
-accel_cols <- paste0("MIN",1:1440)
-colnames(accel_mat) <- colnames(impute_mat) <- c("date","eid",accel_cols)
-
 ## calcualate percent of observed day data which are good, then define a "good" 
 ## day as those with less than 5% imputed data
 impute_mat$pct_good_obs <- rowSums(impute_mat[,utimes], na.rm=TRUE)/(1440*12)
