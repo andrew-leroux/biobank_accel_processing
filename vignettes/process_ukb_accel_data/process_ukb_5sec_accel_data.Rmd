@@ -118,7 +118,7 @@ date_vec <- sprintf("%04d-%02d-%02d", year(date_time_vec), month(date_time_vec),
 ## combine aceleration and date data
 adf_1  <- data.frame("eid"=eid_1,"acceleration"=accel_1, time_vec, date_vec, stringsAsFactors = FALSE)
 ## rename the acceleration column 
-colnames(adf_i)[2] <- "acceleration"
+colnames(adf_1)[2] <- "acceleration"
 ## aggregate data to the minute level
 adf_1 <- adf_1 %>% 
              ## group at the minute level
