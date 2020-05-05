@@ -309,9 +309,9 @@ Two important notes. First, the data we load with data quality flags has already
 
 ### Identify "good" accelerometry data: weartime protocol
 
-Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour wear time protocol. That is, participants were instructed to wear the devices continuously. We determiend a "compliant" (i.e. good) calendar day of data as one where the participant was estimated to be wearing the device at least 95\% of the day (1368 minutes). Estimated wear time is calculated using the 1440+ imputation data matrix as imputation was done whenever the UK Biobank team determined an individual was likely not wearing the device. Thus, imputation indicators act as a reproducible proxy for estimated wear/non-wear time. We note using these imputation indicators suggests a very high degree of compliance with weartime protocols relative to other studies with 24 hour weartime protocols. This may suggest an overly optimistic wear time assessment, though we do not pursue this topic further here.
+Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour wear time protocol. That is, participants were instructed to wear the devices continuously. We determiend a "compliant" (i.e. good) calendar day of data as one where the participant was estimated to be wearing the device at least 95\% of the day (1368 minutes). Estimated wear time is calculated using the 1440+ imputation data matrix as imputation was done whenever the UK Biobank team determined an individual was likely not wearing the device. Thus, imputation indicators act as a reproducible proxy for estimated wear/non-wear time. We note using these imputation indicators suggests a very high degree of compliance with weartime protocols relative to other studies with 24 hour weartime protocols. This may suggest an overly optimistic wear time assessment, though we do not pursue this topic further here. Finally, it is standard practice when analyzing accelerometry data to apply an exclusion criteria based on subjects with insufficient "good" days of data. Here we use the often used $<3$ days of "good" data as an exlcusion criteria. 
 
-Finally, it is standard practice when analyzing accelerometry data to apply an exclusion criteria based on subjects with insufficient "good" days of data. Here we use the often used $<3$ days of "good" data as an exlcusion criteria. 
+To make this a bit more precise, for a given threshold of percent non-imputed data, $c$, a good day is one where $(1440*12)^{-1}\sum_{t=1}^{1440}NI_{ijt} \geq c$ where we divide by $1440*12$ because $NI_{ijt}$ ranges from $0$ to $12$. We then subset to subjects with at least 3 days of good data and subject-days which meet the aforementioned non-imputation (wear time) criteria. Let $G_{ij} = 1[(1440*12)^{-1}\sum_{t=1}^{1440}NI_{ijt} \geq 0.95]$ be an indicator for whether subject $i$'s day $j$ of data is considered good ($G_{ij} = 1$) or not ($G_{ij} = 0$). Then, we define $I^* = \{i: \sum_{j=1}^{J_i} G_{ij} \geq 3\}$ be the set of all subjects with at least 3 days of good data and $J_i^* = \{j: G_{ij} = 1\}$ be the set of all good days of data for subject $i$.
 
 ```{r identify_good_accel_data_weartime}
 ## re-name acceleration columns to be easier to work with in matrix/data frame operations
@@ -353,14 +353,42 @@ We can see that after applying this exclusion criteria we have a total of `r len
 length(unique(accel_mat$eid))
 ## number of good days of data among those subjects
 nrow(accel_mat)
-## distribution of number of days of good data per participant
-round(prop.table(table(accel_mat$eid)),3)
 ```
 
 
 ## Propose a method for handling imputed and/or missing data
 
-One important consequence of our choice of wear time threshold of 1368 minutes is that it allows for the inclusion of days corresponding to daylight savings forward (lose an hour) as these days have one hour of missing data from 1AM-2AM imputed by the Biobank team. 
+Given our relatively strict definition of a "good" day of data ($\geq 95\%$ estimated wear time) we have relatively few missing and/or imputed data. However, two important consequences of this choice are as follows:
+
+1. Our choice of wear time threshold of 1368 minutes allows for the inclusion of days corresponding to daylight savings forward (lose an hour) as these days have one hour of missing data from 1AM-2AM imputed by the Biobank team. These missing data require some form of imputation if they are to be used
+2. Days 1 and 8 of wear are thrown out for all subjects because recording starts and stops at 10AM on these days, respectively
+
+
+
+
+```{r missing_summaries, echo=TRUE, message=FALSE}
+
+
+```
+
+
+We have found that functional principal components analysis (fPCA) provides a relatively fast means of imputing missing data that performs well in practice. Essentially this procedure assumes there is a smooth underlying acceleration function (on the log scale) which we measure with error. Here we use an ultra fast algorithm @fpca_face which is implemented in the **R** package **refund** @refundR. One drawback of fPCA in this context is that the result is not guaranteed to be non-negative, so we truncate 
+
+
+```{r impute_missing, echo=TRUE, message=FALSE, eval=FALSE}
+## perform fpca on the log transformed acceleration data
+## we will use this for two purposes:
+##   1) to impute the (relatively small) number of "missing" data
+##   2) calculate surrogate measures based on PCA 
+X        <- as.matrix(accel_mat[,paste0("MIN",1:1440)])
+fit_fpca <- fpca.face(log(1+X), knots=50)
+
+## impute missing acceleration data among good days using fpca predicted values
+## truncate below by 0 since ENMO is bounded below by 0 by definition
+inx_na    <- is.na(X)
+X[inx_na] <- pmax(0,exp(fit_fpca$Yhat[inx_na]) + 1)
+rm(list=c("fit_fpca", "inx_na"))
+```
 
 
 ## Exploratory plots of daily activity profiles
