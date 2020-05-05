@@ -26,7 +26,7 @@ format suggested by @Leroux2019 and then how to perform some basic analyses and 
 To begin, we first load a set of **R** packages for reading in data and data manipulation. 
 With the exception of the **lubridate** package used for manipulating date-time objects, the packages we use here are all associated with the *tidyverse*. In addition, we need to set the data path where the 5-second level data files are stored 
 
-NOTE: If processing the UKB accelerometry data locally, all code is self contained with the exception of setting the data path. Once you've changed this one line of code, all the remaining R code should run locally without any further changes. Importantly, this code assumes that the only files you have in this directory are 5-second level UKB accelerometry data. 
+NOTE: If processing the UKB accelerometry data locally, all code is self contained with the exception of setting the data paths. Once you've changed this one line of code, all the remaining R code should run locally without any further changes. Importantly, this code assumes that the only files you have in this directory are 5-second level UKB accelerometry data. 
 
 ```{r packages, message=FALSE, results="hide"}
 ## If packages are not already installed, first install them and then 
@@ -253,6 +253,15 @@ accel_mat  <- read_rds(path=file.path(data_path_processed, "1min_accel.rds"))
 impute_mat <- read_rds(path=file.path(data_path_processed, "1min_impute.rds"))
 ```
 
+Looking at the merged data, we have a total of `r length(unique(accel_mat$eid))` participants with a total of `r nrow(accel_mat)` days of accelerometery data (average `r round(nrow(accel_mat)/length(unique(accel_mat$eid)),2)` days per person).
+
+```{r summary_good_data}
+## number of subejcts who met our criteria for good data
+length(unique(accel_mat$eid))
+## number of good days of data among those subjects
+nrow(accel_mat)
+```
+
 
 
 # Analysis pipeline using the transformed data
@@ -305,6 +314,15 @@ impute_mat <- impute_mat %>% filter(eid %in% xdf$eid)
 ```
 
 Two important notes. First, the data we load with data quality flags has already removed participants who have withdrawn consent to participant in the study. This is a critical part of any data analysis pipeline using the UK Biobank data. Second, any participants who did not complete the accelerometry portion of the study will have missing values for these data quality variables and will thus be filtered out using the code above. 
+
+After applying this inclusion/exclusion criteria, we're left with a total of `r length(unique(accel_mat$eid))` participants with a total of `r nrow(accel_mat)` days of good accelerometery data (average `r round(nrow(accel_mat)/length(unique(accel_mat$eid)),2)` days per person).
+
+```{r summary_good_data}
+## number of subejcts who met our criteria for good data
+length(unique(accel_mat$eid))
+## number of good days of data among those subjects
+nrow(accel_mat)
+```
 
 
 ### Identify "good" accelerometry data: weartime protocol
@@ -363,8 +381,7 @@ Given our relatively strict definition of a "good" day of data ($\geq 95\%$ esti
 1. Our choice of wear time threshold of 1368 minutes allows for the inclusion of days corresponding to daylight savings forward (lose an hour) as these days have one hour of missing data from 1AM-2AM imputed by the Biobank team. These missing data require some form of imputation if they are to be used
 2. Days 1 and 8 of wear are thrown out for all subjects because recording starts and stops at 10AM on these days, respectively
 
-
-
+It is tempting to perhaps preserve data by shifting our 24 hour perspective from 12AM-12AM to 10AM-10AM. However, we have discovered some artifacts in both the first and last days. Below we plot average acceleration profiles by day of the week and day of wear. 
 
 ```{r missing_summaries, echo=TRUE, message=FALSE}
 
@@ -372,31 +389,19 @@ Given our relatively strict definition of a "good" day of data ($\geq 95\%$ esti
 ```
 
 
-We have found that functional principal components analysis (fPCA) provides a relatively fast means of imputing missing data that performs well in practice. Essentially this procedure assumes there is a smooth underlying acceleration function (on the log scale) which we measure with error. Here we use an ultra fast algorithm @fpca_face which is implemented in the **R** package **refund** @refundR. One drawback of fPCA in this context is that the result is not guaranteed to be non-negative, so we truncate 
+We have found that functional principal components analysis (fPCA) provides a relatively fast means of imputing missing data that performs well in practice even when the distributional assumptions of fPCA aren't met. Essentially this procedure assumes there is a smooth underlying acceleration function (on the log scale) which we measure with error. We impute missing data as the predicted underlying "smooth" function. Here we use an ultra fast algorithm @fpca_face which is implemented in the **R** package **refund** @refundR. One drawback of fPCA in this context is that the result is not guaranteed to be non-negative, so we truncate predicted values at 0.  
 
 
 ```{r impute_missing, echo=TRUE, message=FALSE, eval=FALSE}
 ## perform fpca on the log transformed acceleration data
-## we will use this for two purposes:
-##   1) to impute the (relatively small) number of "missing" data
-##   2) calculate surrogate measures based on PCA 
 X        <- as.matrix(accel_mat[,paste0("MIN",1:1440)])
 fit_fpca <- fpca.face(log(1+X), knots=50)
 
 ## impute missing acceleration data among good days using fpca predicted values
-## truncate below by 0 since ENMO is bounded below by 0 by definition
+## truncate below by 0 since the modified ENMO is bounded below by 0 by definition
 inx_na    <- is.na(X)
 X[inx_na] <- pmax(0,exp(fit_fpca$Yhat[inx_na]) + 1)
 rm(list=c("fit_fpca", "inx_na"))
-```
-
-
-## Exploratory plots of daily activity profiles
-
-
-```{r plot_PA_profiles, echo=TRUE, message=FALSE}
-
-
 ```
 
 
