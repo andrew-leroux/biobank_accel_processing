@@ -58,11 +58,8 @@ data_5_sec_ls[1:5]
 
 ## Individual Data File Structure
 
-The 5-second level accelerometry data files for each subject contain two columns. 
-The first column contains the 5-second level acceleration metric where larger values correspond to more acceleration during the corresponding 5-second window. . 
-The second column contains a 0/1 indicator for whether or not that 5-second level data was imputed or derived using the observed data. 
-The column name associated with the first column provides information regarding the start and stop times of the data as well as the sampling rate. 
 
+The 5-second level data are stored as separate zipped .csv files for each participant. Each subjects' data file contains a header with information on the start and end times/dates of recording and two columns with 5-second acceleration (modified ENMO) and imputation indicators. Importantly, the 5-second level data has already been adjusted for daylight savings time crossovers. Specifically, the UK Biobank team removed 1 hour of data (1:00AM-2:00AM) on days coinciding with the end of daylight savings, and imputed 1 hour of missing data (1:00AM-2:00AM) on days coinciding with the start of daylight savings. 
 
 
 
@@ -78,13 +75,29 @@ For a detailed description of data pre-processing steps performed by the UKB as 
 
 
 
-## Transforming to wide (1440+) format: single subject
+## Transforming from long to wide (1440+) format
 
 Encoding time and sampling rate information in column names makes sese for individual files. 
 However, if we wish to load all subjects' data simultanesouly, this requires us to either (1) add columns corresponding to subject identifiers and observation times; or (2) store each subjects' data as distinct objects. 
-Option (1) increases the size of the data by a non-trivial margin and option (2) requires merging and possibly tranforming the data whenever working with summaries accross multiple subjects' data. Therefore, we follow the data storage 
+Option (1) increases the size of the data by a non-trivial margin and option (2) requires merging and possibly tranforming the data whenever working with summaries accross multiple subjects' data. Therefore, we follow the data storage protocol proposed in @Leroux2019 whereby we store the accelerometry data in wide format and have two separte data matrices for acceleration and imputation indicators. 
 
-To tranfrom an individuals' data from long to wide format, we use regular expressions to parse the first column name to get sampling rate, start, and stop times. Then we transform the data to wide form where each row represents one subject-day 12AM-12AM
+
+The basic procedure for transforming and merging the data involves looping over subjects, loading each subjects' data which is stored in long format, summarizing at the desired frequency (in our case 1 minute), transforming the subjects' data to wide format, then merging row-wise. To be precise, let $i = 1,\ldots, N$ denote subject, $j=1,\ldots,J_i$ denote day, $t=1,\ldots,1440$ denote minute, and $k=1,\ldots,k_{ijt}$ denote 5-second interval within a minute where $k_{ijt} \in \{1,\ldots,12\}$, indicating the possibility for minutes where not all 5-second intervals are observed (this occurs at the end of the observation period). For every participant we then have $A_{ijtk_{ijt}}$ and $I_{ijtk_{ijt}}$ corresponding to acceleration and imputation data for each subject, day, minute, and 5-second interval during the observation period. We summarize the data as:
+$$
+\begin{aligned}
+    A_{ijt} &= k_{ijt}^{-1}\sum_{k=1}^{k_{ijt}}A_{ijtk} \\ 
+    NI_{ijt} &= \sum_{k=1}^{k_{ijt}}(1-I_{ijtk}) \;.
+\end{aligned}
+$$
+Note that we summarize the imputation indicator ($NI_{ijt}$) as the sum of *non-imputed* minutes to again account for the fact that there are minutes which are only partially observed. Summarizing the acceleration data in this way potentially averages imputed and non-imputed data, though with our exclusion criteria of $95\%$ of non-imputed data defining a good day, the effect of this on our scalar summaries is likely limited. Alternative summarization approaches could be considered, including averaging over only non-imputed 5-second intervals. 
+
+Once the data has been aggregated at the minute level, we then transform the data to wide format with one column for subject id, a second column for date, and 1440 columns corresponding to each minute of the day separately for acceleration and imputation data. For most participants this results in 2 separate $8 \times 1442$ matrices since the 5-second data runs from 10AM on day 1 to 10AM on day 8. Data are then merged by combining each of these matrices row-wise, resulting in two acceleration and imputation matrices containing all subjects' minute level data.
+
+
+## Transforming from long to wide (1440+) format: single subject
+
+
+To transform an individuals' data from long to wide format, we use regular expressions to parse the first column name to get sampling rate, start, and stop times. Then we transform the data to wide form where each row represents one subject-day 12AM-12AM. Note that because of the very large number of subjects with accelerometry data in the UK Biobank, working with the 1440+ format for all subjects using their 5-second level data is computationally (RAM) infeasible. Thus, we aggregate the data at the minute level for all subjects, though this could be changed via a slight modification of the code below. 
 
 ```{r tranform_single_1440, echo=TRUE, message=FALSE, eval=TRUE}
 ## set up a vector of unique minutes 
@@ -134,11 +147,12 @@ accel_mat_1  <- adf_1 %>% select(-imputed) %>% spread(time_vec,acceleration)
 impute_mat_1 <- adf_1 %>% select(-acceleration) %>% spread(time_vec,imputed)
 ```
 
-This results in two data matrices of equal dimensions corresponding to an individual's average acceleration 
+This results in two data matrices of equal dimensions corresponding to an individual's average acceleration (modified ENMO) in mili gravitational units and the total number of *non* imputed 5-second intervals within each minute as can be seen below. The number of columns for all participants will be 1442 where the first two columns are date of wear and subject eid and the remaining columns are acceleration/imputation indicators for the 1440 minutes of the day (12AM-12AM). 
 
 
 ```{r explore_1_subj, eval=TRUE}
-str(accel_mat_1)
+print(str(accel_mat_1))
+print(str(impute_mat_1))
 ```
 
 
@@ -165,7 +179,7 @@ impute_mat_nms <- paste0("impute_mat_",1:nid)
 for(i in 1:nid){
   
   ## read in subject i's data
-  accel_i <- read.table(file.path(data_path,"intensity", data_5_sec_ls[i]), header=TRUE, sep=",")
+  accel_i <- read.table(file.path(data_path_5sec, data_5_sec_ls[i]), header=TRUE, sep=",")
   
   ## verify the sampling rate for the data is 5 seconds
   (interval_i <- str_replace(names(accel_i)[1], "(.*sampleRate\\.+)([0-9]+\\.[aA-zZ]+)","\\2"))
@@ -183,12 +197,15 @@ for(i in 1:nid){
   date_time_vec     <- seq(ymd_hms(date_i[1], tz="UTC"),ymd_hms(date_i[2], tz="UTC"), by="5 secs")
   date_time_vec_chr <- as.POSIXlt(date_time_vec, tz="UTC")
   
-  # ## separate out the date and time components of the date/time vector
-  time_vec <- sprintf("%02d:%02d:%02d",hour(date_time_vec), minute(date_time_vec), second(date_time_vec))
+  ## separate out the date and time components of the date/time vector
+  time_vec <- sprintf("%02d:%02d", hour(date_time_vec), minute(date_time_vec))
+  time_vec <- factor(time_vec, levels = utimes)
   date_vec <- sprintf("%04d-%02d-%02d",year(date_time_vec), month(date_time_vec),day(date_time_vec))
 
   ## combine aceleration and date data
-  adf_i  <- data.frame("eid"=eid[i], "acceleration"=accel_i, time_vec, date_vec, stringsAsFactors = FALSE)
+  adf_i  <- data.frame("eid"=eid[i], accel_i, time_vec, date_vec, stringsAsFactors = FALSE)
+  ## change column name of acceleration column
+  colnames(adf_i)[2] <- "acceleration"
   ## aggregate data to the minute level
   adf_i <- adf_i %>% 
              ## group at the minute level
@@ -215,15 +232,18 @@ for(i in 1:nid){
 
 }
 
-## combine  acceleration and imputation data into single large matrices
-eval(parse(text=paste0("accel_mat <- rbind(", paste0(accel_mat_nms, collapse=","),")")))
-eval(parse(text=paste0("impute_mat <- rbind(", paste0(impute_mat_nms, collapse=","),")")))
+## combine the data
+accel_mat_nms  <- ls()[grepl("accel_mat_[0-9]+", ls())]
+impute_mat_nms <- ls()[grepl("impute_mat_[0-9]+", ls())]
+
+eval(parse(text=paste0("accel_mat <- bind_rows(", paste0(accel_mat_nms, collapse=","),")")))
+eval(parse(text=paste0("impute_mat <- bind_rows(", paste0(impute_mat_nms, collapse=","),")")))
 ```
 
 
 
 
-# Basic Analyses using the transformed data
+# Analysis pipeline using the transformed data
 
 Analyzing the transformed data involves first identifying "good" accelerometry data, calculating features of interest, and then associating those features with 
 one or more variables of interest. Below we present our approach to identifying good accelerometry data in the UK Biobank using the processed 5-second level data which we aggregated at the minute level above, and then 
