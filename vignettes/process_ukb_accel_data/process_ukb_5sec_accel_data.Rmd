@@ -92,11 +92,11 @@ To tranfrom an individuals' data from long to wide format, we use regular expres
 ## for all participants when we transform from long to wide
 utimes <- sprintf("%02d:%02d", rep(0:23, each=60), rep(0:59, 24))
 
+## get the first participants id
+eid <- str_extract(data_5_sec_ls, "[0-9]+")[1]
+
 ## read in subject 1's data
 accel_1 <- read.table(file.path(data_path_5sec, data_5_sec_ls[1]), header=TRUE, sep=",")
-
-## verify the sampling rate for the data is 5 seconds
-(interval_1 <- str_replace(names(accel_1)[1], "(.*sampleRate\\.+)([0-9]+\\.[aA-zZ]+)","\\2"))
 
 ## get portion of the column names which indicates start and stop dates/times
 raw_date_1 <- str_extract_all(names(accel_1)[1], "\\.{3,3}([0-9]+\\.){5,5}[0-9]+")[[1]]
@@ -111,14 +111,14 @@ date_time_vec     <- seq(ymd_hms(date_1[1], tz="UTC"),ymd_hms(date_1[2], tz="UTC
 date_time_vec_chr <- as.POSIXlt(date_time_vec, tz="UTC")
   
 ## separate out the date and time components of the date/time vector
-time_vec <- sprintf("%02d:%02d:%02d", hour(date_time_vec), minute(date_time_vec), second(date_time_vec))
+time_vec <- sprintf("%02d:%02d", hour(date_time_vec), minute(date_time_vec))
 time_vec <- factor(time_vec, levels = utimes)
 date_vec <- sprintf("%04d-%02d-%02d", year(date_time_vec), month(date_time_vec), day(date_time_vec))
 
 ## combine aceleration and date data
-adf_1  <- data.frame("eid"=eid_1,"acceleration"=accel_1, time_vec, date_vec, stringsAsFactors = FALSE)
+adf_1  <- data.frame("eid"=eid[1],accel_1, time_vec, date_vec, stringsAsFactors = FALSE)
 ## rename the acceleration column 
-colnames(adf_1)[2] <- "acceleration"
+colnames(adf_1)[2] <- c("acceleration")
 ## aggregate data to the minute level
 adf_1 <- adf_1 %>% 
              ## group at the minute level
@@ -134,7 +134,7 @@ accel_mat_1  <- adf_1 %>% select(-imputed) %>% spread(time_vec,acceleration)
 impute_mat_1 <- adf_1 %>% select(-acceleration) %>% spread(time_vec,imputed)
 ```
 
-Once we have this first subjects' data in
+This results in two data matrices of equal dimensions corresponding to an individual's average acceleration 
 
 
 ```{r explore_1_subj, eval=TRUE}
