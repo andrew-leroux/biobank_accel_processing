@@ -255,7 +255,7 @@ impute_mat <- read_rds(path=file.path(data_path_processed, "1min_impute.rds"))
 
 Looking at the merged data, we have a total of `r length(unique(accel_mat$eid))` participants with a total of `r nrow(accel_mat)` days of accelerometery data (average `r round(nrow(accel_mat)/length(unique(accel_mat$eid)),2)` days per person).
 
-```{r summary_good_data}
+```{r summary_good_data_1}
 ## number of subejcts who met our criteria for good data
 length(unique(accel_mat$eid))
 ## number of good days of data among those subjects
@@ -317,7 +317,7 @@ Two important notes. First, the data we load with data quality flags has already
 
 After applying this inclusion/exclusion criteria, we're left with a total of `r length(unique(accel_mat$eid))` participants with a total of `r nrow(accel_mat)` days of good accelerometery data (average `r round(nrow(accel_mat)/length(unique(accel_mat$eid)),2)` days per person).
 
-```{r summary_good_data}
+```{r summary_good_data_2}
 ## number of subejcts who met our criteria for good data
 length(unique(accel_mat$eid))
 ## number of good days of data among those subjects
@@ -366,7 +366,7 @@ accel_mat <-
 
 We can see that after applying this exclusion criteria we have a total of `r length(unique(accel_mat$eid))` participants with a total of `r nrow(accel_mat)` days of good accelerometery data (average `r round(nrow(accel_mat)/length(unique(accel_mat$eid)),2)` days per person).
 
-```{r summary_good_data}
+```{r summary_good_data_3}
 ## number of subejcts who met our criteria for good data
 length(unique(accel_mat$eid))
 ## number of good days of data among those subjects
