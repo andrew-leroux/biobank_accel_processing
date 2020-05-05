@@ -156,44 +156,31 @@ code span.ot { color: #007020; }
 <a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">sapply</span>(pckgs, <span class="cf">function</span>(x) <span class="cf">if</span>(<span class="op">!</span><span class="kw">require</span>(x,<span class="dt">character.only=</span><span class="ot">TRUE</span>,<span class="dt">quietly=</span><span class="ot">TRUE</span>)) {</a>
 <a class="sourceLine" id="cb1-5" data-line-number="5">  <span class="kw">install.packages</span>(x)</a>
 <a class="sourceLine" id="cb1-6" data-line-number="6">  <span class="kw">require</span>(x, <span class="dt">character.only=</span><span class="ot">TRUE</span>)</a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">})</a></code></pre></div>
-<pre><code>## $readr
-## NULL
-## 
-## $tidyr
-## NULL
-## 
-## $dplyr
-## NULL
-## 
-## $lubridate
-## NULL
-## 
-## $stringr
-## NULL</code></pre>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co">## Source an R script which will create a data data path for </span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="co">## where all the 5-second level data are stored</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">## We sore this path as a character vector called &quot;data_path_5sec&quot;</span></a>
-<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="co">## This is the only line of code you should need to change to run locally</span></a>
-<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="kw">source</span>(<span class="kw">file.path</span>(<span class="st">&quot;..&quot;</span>,<span class="st">&quot;..&quot;</span>,<span class="st">&quot;code&quot;</span>,<span class="st">&quot;make_data_directories.R&quot;</span>))</a>
-<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="co">## Obtain file names for all files in the directory</span></a>
-<a class="sourceLine" id="cb3-7" data-line-number="7">data_<span class="dv">5</span>_sec_ls &lt;-<span class="st"> </span><span class="kw">list.files</span>(data_path_5sec)</a></code></pre></div>
+<a class="sourceLine" id="cb1-7" data-line-number="7">})</a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="co">## Source an R script which will create a data data path for </span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="co">## where all the 5-second level data are stored</span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="co">## We sore this path as a character vector called &quot;data_path_5sec&quot;</span></a>
+<a class="sourceLine" id="cb1-11" data-line-number="11"><span class="co">## This is the only line of code you should need to change to run locally</span></a>
+<a class="sourceLine" id="cb1-12" data-line-number="12"><span class="kw">source</span>(<span class="kw">file.path</span>(<span class="st">&quot;..&quot;</span>,<span class="st">&quot;..&quot;</span>,<span class="st">&quot;code&quot;</span>,<span class="st">&quot;make_data_directories.R&quot;</span>))</a>
+<a class="sourceLine" id="cb1-13" data-line-number="13"><span class="co">## Obtain file names for all files in the directory</span></a>
+<a class="sourceLine" id="cb1-14" data-line-number="14">data_<span class="dv">5</span>_sec_ls &lt;-<span class="st"> </span><span class="kw">list.files</span>(data_path_5sec)</a></code></pre></div>
 <p>The object <em>data_5_sec_ls</em> is a vector of file names. naming convention for these files follows the following format:</p>
 <p>“subject id”_90004_0_0.csv.gz</p>
 <p>These files are compressed csv files. Note that Biobank uses different subject identifiers for each individual application. Thus, no two groups will have identical subject ids. For our application, the first 5 files can be seen below</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">data_<span class="dv">5</span>_sec_ls[<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>]</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">data_<span class="dv">5</span>_sec_ls[<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>]</a></code></pre></div>
 <pre><code>## [1] &quot;1000043_90004_0_0.csv.gz&quot; &quot;1000051_90004_0_0.csv.gz&quot;
 ## [3] &quot;1000092_90004_0_0.csv.gz&quot; &quot;1000107_90004_0_0.csv.gz&quot;
 ## [5] &quot;1000128_90004_0_0.csv.gz&quot;</code></pre>
 <div id="individual-data-file-structure" class="section level2">
 <h2><span class="header-section-number">1.1</span> Individual Data File Structure</h2>
 <p>The 5-second level data are stored as separate zipped .csv files for each participant. Each subjects’ data file contains a header with information on the start and end times/dates of recording and two columns with 5-second acceleration (modified ENMO) and imputation indicators. Importantly, the 5-second level data has already been adjusted for daylight savings time crossovers. Specifically, the UK Biobank team removed 1 hour of data (1:00AM-2:00AM) on days coinciding with the end of daylight savings, and imputed 1 hour of missing data (1:00AM-2:00AM) on days coinciding with the start of daylight savings.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">accel_<span class="dv">1</span> &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(data_path_5sec, data_<span class="dv">5</span>_sec_ls[<span class="dv">1</span>]), <span class="dt">header=</span><span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;,&quot;</span>)</a>
-<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="kw">str</span>(accel_<span class="dv">1</span>)</a></code></pre></div>
+<p>At a high level, the UK Biobank team imputed data by first estimating non-wear time by looking at long periods of time with implausibly low acceleration recorded by the accelerometer. Then, these periods of estimated non-wear were imputed using average acceleration values at the same time of day using days of data with estiamted wear during that specific time. For a detailed description of data pre-processing steps performed by the UKB as well as the UKB imputation procedure, please see <span class="citation">Doherty (2017)</span>.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">accel_<span class="dv">1</span> &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(data_path_5sec, data_<span class="dv">5</span>_sec_ls[<span class="dv">1</span>]), <span class="dt">header=</span><span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;,&quot;</span>)</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="kw">str</span>(accel_<span class="dv">1</span>)</a></code></pre></div>
 <pre><code>## 'data.frame':    120960 obs. of  2 variables:
 ##  $ acceleration..mg....2013.12.06.10.00.00...2013.12.13.09.59.55...sampleRate...5.seconds: num  71.4 41 64.4 52.5 86.7 ...
 ##  $ imputed                                                                               : int  0 0 0 0 0 0 0 0 0 0 ...</code></pre>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw">summary</span>(accel_<span class="dv">1</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">summary</span>(accel_<span class="dv">1</span>)</a></code></pre></div>
 <pre><code>##  acceleration..mg....2013.12.06.10.00.00...2013.12.13.09.59.55...sampleRate...5.seconds
 ##  Min.   :   0.00                                                                       
 ##  1st Qu.:   1.20                                                                       
@@ -208,7 +195,6 @@ code span.ot { color: #007020; }
 ##  Mean   :0.02861  
 ##  3rd Qu.:0.00000  
 ##  Max.   :1.00000</code></pre>
-<p>At a high level, the For a detailed description of data pre-processing steps performed by the UKB as well as the UKB imputation procedure, please see <span class="citation">Doherty (2017)</span>.</p>
 </div>
 <div id="transforming-from-long-to-wide-1440-format" class="section level2">
 <h2><span class="header-section-number">1.2</span> Transforming from long to wide (1440+) format</h2>
@@ -224,51 +210,51 @@ code span.ot { color: #007020; }
 <div id="transforming-from-long-to-wide-1440-format-single-subject" class="section level2">
 <h2><span class="header-section-number">1.3</span> Transforming from long to wide (1440+) format: single subject</h2>
 <p>We illustrate the transforkmation from long to wide data first using one individuals’ data. To transform an individuals’ data from long to wide format, we use regular expressions to parse the first column name to get sampling rate, start, and stop times. Then we transform the data to wide form where each row represents one subject-day 12AM-12AM. Note that because of the very large number of subjects with accelerometry data in the UK Biobank, working with the 1440+ format for all subjects using their 5-second level data is computationally (RAM) infeasible. Thus, we aggregate the data at the minute level for all subjects, though this could be changed via a slight modification of the code below.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="co">## set up a vector of unique minutes </span></a>
-<a class="sourceLine" id="cb10-2" data-line-number="2"><span class="co">## this will be used to ensure we have appropriate number of columns</span></a>
-<a class="sourceLine" id="cb10-3" data-line-number="3"><span class="co">## for all participants when we transform from long to wide</span></a>
-<a class="sourceLine" id="cb10-4" data-line-number="4">utimes &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%02d:%02d&quot;</span>, <span class="kw">rep</span>(<span class="dv">0</span><span class="op">:</span><span class="dv">23</span>, <span class="dt">each=</span><span class="dv">60</span>), <span class="kw">rep</span>(<span class="dv">0</span><span class="op">:</span><span class="dv">59</span>, <span class="dv">24</span>))</a>
-<a class="sourceLine" id="cb10-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="co">## get the first participants id</span></a>
-<a class="sourceLine" id="cb10-7" data-line-number="7">eid &lt;-<span class="st"> </span><span class="kw">str_extract</span>(data_<span class="dv">5</span>_sec_ls, <span class="st">&quot;[0-9]+&quot;</span>)[<span class="dv">1</span>]</a>
-<a class="sourceLine" id="cb10-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb10-9" data-line-number="9"><span class="co">## read in subject 1's data</span></a>
-<a class="sourceLine" id="cb10-10" data-line-number="10">accel_<span class="dv">1</span> &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(data_path_5sec, data_<span class="dv">5</span>_sec_ls[<span class="dv">1</span>]), <span class="dt">header=</span><span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;,&quot;</span>)</a>
-<a class="sourceLine" id="cb10-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb10-12" data-line-number="12"><span class="co">## get portion of the column names which indicates start and stop dates/times</span></a>
-<a class="sourceLine" id="cb10-13" data-line-number="13">raw_date_<span class="dv">1</span> &lt;-<span class="st"> </span><span class="kw">str_extract_all</span>(<span class="kw">names</span>(accel_<span class="dv">1</span>)[<span class="dv">1</span>], <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.{3,3}([0-9]+</span><span class="ch">\\</span><span class="st">.){5,5}[0-9]+&quot;</span>)[[<span class="dv">1</span>]]</a>
-<a class="sourceLine" id="cb10-14" data-line-number="14"><span class="co">## extract start and stop dates/times</span></a>
-<a class="sourceLine" id="cb10-15" data-line-number="15">date_<span class="dv">1</span>     &lt;-<span class="st"> </span><span class="kw">str_replace_all</span>(raw_date_<span class="dv">1</span>, <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.{3,3}&quot;</span>,<span class="st">&quot;&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb10-16" data-line-number="16"><span class="st">                    </span><span class="kw">str_replace_all</span>(<span class="st">&quot;</span><span class="ch">\\</span><span class="st">.&quot;</span>,<span class="st">&quot;-&quot;</span>) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb10-17" data-line-number="17"><span class="st">                    </span><span class="kw">str_replace_all</span>(<span class="st">&quot;([0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})&quot;</span>,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">1 </span><span class="ch">\\</span><span class="st">2:</span><span class="ch">\\</span><span class="st">3:</span><span class="ch">\\</span><span class="st">4&quot;</span>)</a>
-<a class="sourceLine" id="cb10-18" data-line-number="18"><span class="co">## create a vector of date-times corresponding to observed data</span></a>
-<a class="sourceLine" id="cb10-19" data-line-number="19"><span class="co">## note that we set the time zone to be UTC as the 5-second level data has already had </span></a>
-<a class="sourceLine" id="cb10-20" data-line-number="20"><span class="co">## time-zone information accounted for</span></a>
-<a class="sourceLine" id="cb10-21" data-line-number="21">date_time_vec     &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="kw">ymd_hms</span>(date_<span class="dv">1</span>[<span class="dv">1</span>], <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>),<span class="kw">ymd_hms</span>(date_<span class="dv">1</span>[<span class="dv">2</span>], <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>), <span class="dt">by=</span><span class="st">&quot;5 secs&quot;</span>)</a>
-<a class="sourceLine" id="cb10-22" data-line-number="22">date_time_vec_chr &lt;-<span class="st"> </span><span class="kw">as.POSIXlt</span>(date_time_vec, <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>)</a>
-<a class="sourceLine" id="cb10-23" data-line-number="23">  </a>
-<a class="sourceLine" id="cb10-24" data-line-number="24"><span class="co">## separate out the date and time components of the date/time vector</span></a>
-<a class="sourceLine" id="cb10-25" data-line-number="25">time_vec &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%02d:%02d&quot;</span>, <span class="kw">hour</span>(date_time_vec), <span class="kw">minute</span>(date_time_vec))</a>
-<a class="sourceLine" id="cb10-26" data-line-number="26">time_vec &lt;-<span class="st"> </span><span class="kw">factor</span>(time_vec, <span class="dt">levels =</span> utimes)</a>
-<a class="sourceLine" id="cb10-27" data-line-number="27">date_vec &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%04d-%02d-%02d&quot;</span>, <span class="kw">year</span>(date_time_vec), <span class="kw">month</span>(date_time_vec), <span class="kw">day</span>(date_time_vec))</a>
-<a class="sourceLine" id="cb10-28" data-line-number="28"></a>
-<a class="sourceLine" id="cb10-29" data-line-number="29"><span class="co">## combine aceleration and date data</span></a>
-<a class="sourceLine" id="cb10-30" data-line-number="30">adf_<span class="dv">1</span>  &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="st">&quot;eid&quot;</span>=eid[<span class="dv">1</span>],accel_<span class="dv">1</span>, time_vec, date_vec, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</a>
-<a class="sourceLine" id="cb10-31" data-line-number="31"><span class="co">## rename the acceleration column </span></a>
-<a class="sourceLine" id="cb10-32" data-line-number="32"><span class="kw">colnames</span>(adf_<span class="dv">1</span>)[<span class="dv">2</span>] &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;acceleration&quot;</span>)</a>
-<a class="sourceLine" id="cb10-33" data-line-number="33"><span class="co">## aggregate data to the minute level</span></a>
-<a class="sourceLine" id="cb10-34" data-line-number="34">adf_<span class="dv">1</span> &lt;-<span class="st"> </span>adf_<span class="dv">1</span> <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb10-35" data-line-number="35"><span class="st">             </span><span class="co">## group at the minute level</span></a>
-<a class="sourceLine" id="cb10-36" data-line-number="36"><span class="st">             </span><span class="kw">group_by</span>(date_vec, time_vec) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb10-37" data-line-number="37"><span class="st">             </span><span class="co">## obtain mean and number of not imputed minutes</span></a>
-<a class="sourceLine" id="cb10-38" data-line-number="38"><span class="st">             </span><span class="kw">summarize</span>(<span class="st">&quot;acceleration&quot;</span> =<span class="st"> </span><span class="kw">mean</span>(acceleration,<span class="dt">na.rm=</span><span class="ot">TRUE</span>),</a>
-<a class="sourceLine" id="cb10-39" data-line-number="39">                      <span class="st">&quot;imputed&quot;</span> =<span class="st"> </span><span class="kw">sum</span>(<span class="dv">1</span><span class="op">-</span>imputed,<span class="dt">na.rm=</span><span class="ot">TRUE</span>),</a>
-<a class="sourceLine" id="cb10-40" data-line-number="40">                      <span class="st">&quot;eid&quot;</span> =<span class="st"> </span>eid[<span class="dv">1</span>]) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb10-41" data-line-number="41"><span class="st">             </span><span class="kw">ungroup</span>()</a>
-<a class="sourceLine" id="cb10-42" data-line-number="42">  </a>
-<a class="sourceLine" id="cb10-43" data-line-number="43"><span class="co">## transform to wide format for accelration and imputation separately using tidyr::spread</span></a>
-<a class="sourceLine" id="cb10-44" data-line-number="44">accel_mat_<span class="dv">1</span>  &lt;-<span class="st"> </span>adf_<span class="dv">1</span> <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>imputed) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">spread</span>(time_vec,acceleration)</a>
-<a class="sourceLine" id="cb10-45" data-line-number="45">impute_mat_<span class="dv">1</span> &lt;-<span class="st"> </span>adf_<span class="dv">1</span> <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>acceleration) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">spread</span>(time_vec,imputed)</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="co">## set up a vector of unique minutes </span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2"><span class="co">## this will be used to ensure we have appropriate number of columns</span></a>
+<a class="sourceLine" id="cb8-3" data-line-number="3"><span class="co">## for all participants when we transform from long to wide</span></a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">utimes &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%02d:%02d&quot;</span>, <span class="kw">rep</span>(<span class="dv">0</span><span class="op">:</span><span class="dv">23</span>, <span class="dt">each=</span><span class="dv">60</span>), <span class="kw">rep</span>(<span class="dv">0</span><span class="op">:</span><span class="dv">59</span>, <span class="dv">24</span>))</a>
+<a class="sourceLine" id="cb8-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb8-6" data-line-number="6"><span class="co">## get the first participants id</span></a>
+<a class="sourceLine" id="cb8-7" data-line-number="7">eid &lt;-<span class="st"> </span><span class="kw">str_extract</span>(data_<span class="dv">5</span>_sec_ls, <span class="st">&quot;[0-9]+&quot;</span>)[<span class="dv">1</span>]</a>
+<a class="sourceLine" id="cb8-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb8-9" data-line-number="9"><span class="co">## read in subject 1's data</span></a>
+<a class="sourceLine" id="cb8-10" data-line-number="10">accel_<span class="dv">1</span> &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(data_path_5sec, data_<span class="dv">5</span>_sec_ls[<span class="dv">1</span>]), <span class="dt">header=</span><span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;,&quot;</span>)</a>
+<a class="sourceLine" id="cb8-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb8-12" data-line-number="12"><span class="co">## get portion of the column names which indicates start and stop dates/times</span></a>
+<a class="sourceLine" id="cb8-13" data-line-number="13">raw_date_<span class="dv">1</span> &lt;-<span class="st"> </span><span class="kw">str_extract_all</span>(<span class="kw">names</span>(accel_<span class="dv">1</span>)[<span class="dv">1</span>], <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.{3,3}([0-9]+</span><span class="ch">\\</span><span class="st">.){5,5}[0-9]+&quot;</span>)[[<span class="dv">1</span>]]</a>
+<a class="sourceLine" id="cb8-14" data-line-number="14"><span class="co">## extract start and stop dates/times</span></a>
+<a class="sourceLine" id="cb8-15" data-line-number="15">date_<span class="dv">1</span>     &lt;-<span class="st"> </span><span class="kw">str_replace_all</span>(raw_date_<span class="dv">1</span>, <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.{3,3}&quot;</span>,<span class="st">&quot;&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb8-16" data-line-number="16"><span class="st">                    </span><span class="kw">str_replace_all</span>(<span class="st">&quot;</span><span class="ch">\\</span><span class="st">.&quot;</span>,<span class="st">&quot;-&quot;</span>) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb8-17" data-line-number="17"><span class="st">                    </span><span class="kw">str_replace_all</span>(<span class="st">&quot;([0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})&quot;</span>,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">1 </span><span class="ch">\\</span><span class="st">2:</span><span class="ch">\\</span><span class="st">3:</span><span class="ch">\\</span><span class="st">4&quot;</span>)</a>
+<a class="sourceLine" id="cb8-18" data-line-number="18"><span class="co">## create a vector of date-times corresponding to observed data</span></a>
+<a class="sourceLine" id="cb8-19" data-line-number="19"><span class="co">## note that we set the time zone to be UTC as the 5-second level data has already had </span></a>
+<a class="sourceLine" id="cb8-20" data-line-number="20"><span class="co">## time-zone information accounted for</span></a>
+<a class="sourceLine" id="cb8-21" data-line-number="21">date_time_vec     &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="kw">ymd_hms</span>(date_<span class="dv">1</span>[<span class="dv">1</span>], <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>),<span class="kw">ymd_hms</span>(date_<span class="dv">1</span>[<span class="dv">2</span>], <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>), <span class="dt">by=</span><span class="st">&quot;5 secs&quot;</span>)</a>
+<a class="sourceLine" id="cb8-22" data-line-number="22">date_time_vec_chr &lt;-<span class="st"> </span><span class="kw">as.POSIXlt</span>(date_time_vec, <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>)</a>
+<a class="sourceLine" id="cb8-23" data-line-number="23">  </a>
+<a class="sourceLine" id="cb8-24" data-line-number="24"><span class="co">## separate out the date and time components of the date/time vector</span></a>
+<a class="sourceLine" id="cb8-25" data-line-number="25">time_vec &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%02d:%02d&quot;</span>, <span class="kw">hour</span>(date_time_vec), <span class="kw">minute</span>(date_time_vec))</a>
+<a class="sourceLine" id="cb8-26" data-line-number="26">time_vec &lt;-<span class="st"> </span><span class="kw">factor</span>(time_vec, <span class="dt">levels =</span> utimes)</a>
+<a class="sourceLine" id="cb8-27" data-line-number="27">date_vec &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%04d-%02d-%02d&quot;</span>, <span class="kw">year</span>(date_time_vec), <span class="kw">month</span>(date_time_vec), <span class="kw">day</span>(date_time_vec))</a>
+<a class="sourceLine" id="cb8-28" data-line-number="28"></a>
+<a class="sourceLine" id="cb8-29" data-line-number="29"><span class="co">## combine aceleration and date data</span></a>
+<a class="sourceLine" id="cb8-30" data-line-number="30">adf_<span class="dv">1</span>  &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="st">&quot;eid&quot;</span>=eid[<span class="dv">1</span>],accel_<span class="dv">1</span>, time_vec, date_vec, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb8-31" data-line-number="31"><span class="co">## rename the acceleration column </span></a>
+<a class="sourceLine" id="cb8-32" data-line-number="32"><span class="kw">colnames</span>(adf_<span class="dv">1</span>)[<span class="dv">2</span>] &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;acceleration&quot;</span>)</a>
+<a class="sourceLine" id="cb8-33" data-line-number="33"><span class="co">## aggregate data to the minute level</span></a>
+<a class="sourceLine" id="cb8-34" data-line-number="34">adf_<span class="dv">1</span> &lt;-<span class="st"> </span>adf_<span class="dv">1</span> <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb8-35" data-line-number="35"><span class="st">             </span><span class="co">## group at the minute level</span></a>
+<a class="sourceLine" id="cb8-36" data-line-number="36"><span class="st">             </span><span class="kw">group_by</span>(date_vec, time_vec) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb8-37" data-line-number="37"><span class="st">             </span><span class="co">## obtain mean and number of not imputed minutes</span></a>
+<a class="sourceLine" id="cb8-38" data-line-number="38"><span class="st">             </span><span class="kw">summarize</span>(<span class="st">&quot;acceleration&quot;</span> =<span class="st"> </span><span class="kw">mean</span>(acceleration,<span class="dt">na.rm=</span><span class="ot">TRUE</span>),</a>
+<a class="sourceLine" id="cb8-39" data-line-number="39">                      <span class="st">&quot;imputed&quot;</span> =<span class="st"> </span><span class="kw">sum</span>(<span class="dv">1</span><span class="op">-</span>imputed,<span class="dt">na.rm=</span><span class="ot">TRUE</span>),</a>
+<a class="sourceLine" id="cb8-40" data-line-number="40">                      <span class="st">&quot;eid&quot;</span> =<span class="st"> </span>eid[<span class="dv">1</span>]) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb8-41" data-line-number="41"><span class="st">             </span><span class="kw">ungroup</span>()</a>
+<a class="sourceLine" id="cb8-42" data-line-number="42">  </a>
+<a class="sourceLine" id="cb8-43" data-line-number="43"><span class="co">## transform to wide format for accelration and imputation separately using tidyr::spread</span></a>
+<a class="sourceLine" id="cb8-44" data-line-number="44">accel_mat_<span class="dv">1</span>  &lt;-<span class="st"> </span>adf_<span class="dv">1</span> <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>imputed) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">spread</span>(time_vec,acceleration)</a>
+<a class="sourceLine" id="cb8-45" data-line-number="45">impute_mat_<span class="dv">1</span> &lt;-<span class="st"> </span>adf_<span class="dv">1</span> <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>acceleration) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">spread</span>(time_vec,imputed)</a></code></pre></div>
 <p>This results in two data matrices of equal dimensions corresponding to an individual’s average acceleration (modified ENMO) in mili gravitational units and the total number of <em>non</em> imputed 5-second intervals within each minute as can be seen below. The number of columns for all participants will be 1442 where the first two columns are date of wear and subject eid and the remaining columns are acceleration/imputation indicators for the 1440 minutes of the day (12AM-12AM). We print the structure of the first 12 columns of both the acceleration and imputation matrices for this one subject below (12:00-12:10AM across all 8 calendar days).</p>
 <p>A few key obervations from the imputation matrix:</p>
 <ul>
@@ -277,7 +263,7 @@ code span.ot { color: #007020; }
 <li>The third day (third row) of data has all imputed data during 12:00AM-12:10AM as indicated by the value “0” in 3-12 columns of the imputation matrix</li>
 </ul>
 <p>We conclude here by noting that the way the UK Biobank team imputed acceleration data was to take the average acceleration at that time of day using only non-imputed (estimated wear) data. As a result, you can see that 12:00-12:08AM on the third, fourth, and fifth days report identical values in the acceleration matrix (columns 3-10) and that these values are the average of the second, sixth, seventh, and eigth days’ data (again, the first day is missing).</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="kw">print</span>(<span class="kw">str</span>(accel_mat_<span class="dv">1</span>[,<span class="dv">1</span><span class="op">:</span><span class="dv">12</span>]))</a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">print</span>(<span class="kw">str</span>(accel_mat_<span class="dv">1</span>[,<span class="dv">1</span><span class="op">:</span><span class="dv">12</span>]))</a></code></pre></div>
 <pre><code>## Classes 'tbl_df', 'tbl' and 'data.frame':    8 obs. of  12 variables:
 ##  $ date_vec: chr  &quot;2013-12-06&quot; &quot;2013-12-07&quot; &quot;2013-12-08&quot; &quot;2013-12-09&quot; ...
 ##  $ eid     : chr  &quot;1000043&quot; &quot;1000043&quot; &quot;1000043&quot; &quot;1000043&quot; ...
@@ -292,7 +278,7 @@ code span.ot { color: #007020; }
 ##  $ 00:08   : num  NA 10.62 5.9 5.9 6.19 ...
 ##  $ 00:09   : num  NA 2.22 4.2 4.2 7.84 ...
 ## NULL</code></pre>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw">print</span>(<span class="kw">str</span>(impute_mat_<span class="dv">1</span>[,<span class="dv">1</span><span class="op">:</span><span class="dv">12</span>]))</a></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="kw">print</span>(<span class="kw">str</span>(impute_mat_<span class="dv">1</span>[,<span class="dv">1</span><span class="op">:</span><span class="dv">12</span>]))</a></code></pre></div>
 <pre><code>## Classes 'tbl_df', 'tbl' and 'data.frame':    8 obs. of  12 variables:
 ##  $ date_vec: chr  &quot;2013-12-06&quot; &quot;2013-12-07&quot; &quot;2013-12-08&quot; &quot;2013-12-09&quot; ...
 ##  $ eid     : chr  &quot;1000043&quot; &quot;1000043&quot; &quot;1000043&quot; &quot;1000043&quot; ...
@@ -311,80 +297,80 @@ code span.ot { color: #007020; }
 <div id="transforming-to-wide-1440-format-all-subjects" class="section level2">
 <h2><span class="header-section-number">1.4</span> Transforming to wide (1440+) format: all subjects</h2>
 <p>We can wrap the code above in a for loop to transform all subject’s data into wide format. Then, we combine all subjects data acceleration and imputation data, separately, into two large matrices. The code below will perform this transformation and merging, however it will take quite a long time to run due to the large number of subjects in the UK Biobank. This code is easily parallelized to run on either multiple cores, or submitted as a batch job on a computing cluster. Once the data have been transformed and merged, we would then save the merged data to avoid having to repeatedly re-process the data as this would be unnecessarily time consuming.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="co">## get file names for all 5-second level files in the directory</span></a>
-<a class="sourceLine" id="cb15-2" data-line-number="2">data_<span class="dv">5</span>_sec_ls &lt;-<span class="st"> </span><span class="kw">list.files</span>(data_path_5sec)</a>
-<a class="sourceLine" id="cb15-3" data-line-number="3"><span class="co">## total number of subejcts to loop over </span></a>
-<a class="sourceLine" id="cb15-4" data-line-number="4">nid &lt;-<span class="st"> </span><span class="kw">length</span>(data_<span class="dv">5</span>_sec_ls)</a>
-<a class="sourceLine" id="cb15-5" data-line-number="5"><span class="co">## extract all subject ids</span></a>
-<a class="sourceLine" id="cb15-6" data-line-number="6">eid &lt;-<span class="st"> </span><span class="kw">str_extract</span>(data_<span class="dv">5</span>_sec_ls, <span class="st">&quot;[0-9]+&quot;</span>)</a>
-<a class="sourceLine" id="cb15-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb15-8" data-line-number="8"><span class="co">## create vector of names for wide-format data </span></a>
-<a class="sourceLine" id="cb15-9" data-line-number="9">accel_mat_nms  &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;accel_mat_&quot;</span>,<span class="dv">1</span><span class="op">:</span>nid)</a>
-<a class="sourceLine" id="cb15-10" data-line-number="10">impute_mat_nms &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;impute_mat_&quot;</span>,<span class="dv">1</span><span class="op">:</span>nid)</a>
-<a class="sourceLine" id="cb15-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb15-12" data-line-number="12"><span class="co">## loop over subjects</span></a>
-<a class="sourceLine" id="cb15-13" data-line-number="13"><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span>nid){</a>
-<a class="sourceLine" id="cb15-14" data-line-number="14">  </a>
-<a class="sourceLine" id="cb15-15" data-line-number="15">  <span class="co">## read in subject i's data</span></a>
-<a class="sourceLine" id="cb15-16" data-line-number="16">  accel_i &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(data_path_5sec, data_<span class="dv">5</span>_sec_ls[i]), <span class="dt">header=</span><span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;,&quot;</span>)</a>
-<a class="sourceLine" id="cb15-17" data-line-number="17">  </a>
-<a class="sourceLine" id="cb15-18" data-line-number="18">  <span class="co">## verify the sampling rate for the data is 5 seconds</span></a>
-<a class="sourceLine" id="cb15-19" data-line-number="19">  (interval_i &lt;-<span class="st"> </span><span class="kw">str_replace</span>(<span class="kw">names</span>(accel_i)[<span class="dv">1</span>], <span class="st">&quot;(.*sampleRate</span><span class="ch">\\</span><span class="st">.+)([0-9]+</span><span class="ch">\\</span><span class="st">.[aA-zZ]+)&quot;</span>,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">2&quot;</span>))</a>
-<a class="sourceLine" id="cb15-20" data-line-number="20">  <span class="cf">if</span>(interval_i <span class="op">!=</span><span class="st"> &quot;5.seconds&quot;</span>) <span class="cf">next</span></a>
-<a class="sourceLine" id="cb15-21" data-line-number="21">  </a>
-<a class="sourceLine" id="cb15-22" data-line-number="22">  <span class="co">## get portion of the column names which indicates start and stop dates/times</span></a>
-<a class="sourceLine" id="cb15-23" data-line-number="23">  raw_date_i &lt;-<span class="st"> </span><span class="kw">str_extract_all</span>(<span class="kw">names</span>(accel_i)[<span class="dv">1</span>], <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.{3,3}([0-9]+</span><span class="ch">\\</span><span class="st">.){5,5}[0-9]+&quot;</span>)[[<span class="dv">1</span>]]</a>
-<a class="sourceLine" id="cb15-24" data-line-number="24">  <span class="co">## extract start and stop dates/times</span></a>
-<a class="sourceLine" id="cb15-25" data-line-number="25">  date_i     &lt;-<span class="st"> </span><span class="kw">str_replace_all</span>(raw_date_i, <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.{3,3}&quot;</span>,<span class="st">&quot;&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb15-26" data-line-number="26"><span class="st">                      </span><span class="kw">str_replace_all</span>(<span class="st">&quot;</span><span class="ch">\\</span><span class="st">.&quot;</span>,<span class="st">&quot;-&quot;</span>) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb15-27" data-line-number="27"><span class="st">                      </span><span class="kw">str_replace_all</span>(<span class="st">&quot;([0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})&quot;</span>,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">1 </span><span class="ch">\\</span><span class="st">2:</span><span class="ch">\\</span><span class="st">3:</span><span class="ch">\\</span><span class="st">4&quot;</span>)</a>
-<a class="sourceLine" id="cb15-28" data-line-number="28">  <span class="co">## create a vector of date-times corresponding to observed data</span></a>
-<a class="sourceLine" id="cb15-29" data-line-number="29">  <span class="co">## note that we set the time zone to be UTC as the 5-second level data has already had </span></a>
-<a class="sourceLine" id="cb15-30" data-line-number="30">  <span class="co">## time-zone information accounted for</span></a>
-<a class="sourceLine" id="cb15-31" data-line-number="31">  date_time_vec     &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="kw">ymd_hms</span>(date_i[<span class="dv">1</span>], <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>),<span class="kw">ymd_hms</span>(date_i[<span class="dv">2</span>], <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>), <span class="dt">by=</span><span class="st">&quot;5 secs&quot;</span>)</a>
-<a class="sourceLine" id="cb15-32" data-line-number="32">  date_time_vec_chr &lt;-<span class="st"> </span><span class="kw">as.POSIXlt</span>(date_time_vec, <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>)</a>
-<a class="sourceLine" id="cb15-33" data-line-number="33">  </a>
-<a class="sourceLine" id="cb15-34" data-line-number="34">  <span class="co">## separate out the date and time components of the date/time vector</span></a>
-<a class="sourceLine" id="cb15-35" data-line-number="35">  time_vec &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%02d:%02d&quot;</span>, <span class="kw">hour</span>(date_time_vec), <span class="kw">minute</span>(date_time_vec))</a>
-<a class="sourceLine" id="cb15-36" data-line-number="36">  time_vec &lt;-<span class="st"> </span><span class="kw">factor</span>(time_vec, <span class="dt">levels =</span> utimes)</a>
-<a class="sourceLine" id="cb15-37" data-line-number="37">  date_vec &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%04d-%02d-%02d&quot;</span>,<span class="kw">year</span>(date_time_vec), <span class="kw">month</span>(date_time_vec),<span class="kw">day</span>(date_time_vec))</a>
-<a class="sourceLine" id="cb15-38" data-line-number="38"></a>
-<a class="sourceLine" id="cb15-39" data-line-number="39">  <span class="co">## combine aceleration and date data</span></a>
-<a class="sourceLine" id="cb15-40" data-line-number="40">  adf_i  &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="st">&quot;eid&quot;</span>=eid[i], accel_i, time_vec, date_vec, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</a>
-<a class="sourceLine" id="cb15-41" data-line-number="41">  <span class="co">## change column name of acceleration column</span></a>
-<a class="sourceLine" id="cb15-42" data-line-number="42">  <span class="kw">colnames</span>(adf_i)[<span class="dv">2</span>] &lt;-<span class="st"> &quot;acceleration&quot;</span></a>
-<a class="sourceLine" id="cb15-43" data-line-number="43">  <span class="co">## aggregate data to the minute level</span></a>
-<a class="sourceLine" id="cb15-44" data-line-number="44">  adf_i &lt;-<span class="st"> </span>adf_i <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb15-45" data-line-number="45"><span class="st">             </span><span class="co">## group at the minute level</span></a>
-<a class="sourceLine" id="cb15-46" data-line-number="46"><span class="st">             </span><span class="kw">group_by</span>(date_vec, time_vec) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb15-47" data-line-number="47"><span class="st">             </span><span class="co">## obtain mean and number of not imputed minutes</span></a>
-<a class="sourceLine" id="cb15-48" data-line-number="48"><span class="st">             </span><span class="kw">summarize</span>(<span class="st">&quot;acceleration&quot;</span> =<span class="st"> </span><span class="kw">mean</span>(acceleration,<span class="dt">na.rm=</span><span class="ot">TRUE</span>),</a>
-<a class="sourceLine" id="cb15-49" data-line-number="49">                      <span class="st">&quot;imputed&quot;</span> =<span class="st"> </span><span class="kw">sum</span>(<span class="dv">1</span><span class="op">-</span>imputed,<span class="dt">na.rm=</span><span class="ot">TRUE</span>),</a>
-<a class="sourceLine" id="cb15-50" data-line-number="50">                      <span class="st">&quot;eid&quot;</span> =<span class="st"> </span>eid[<span class="dv">1</span>]) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb15-51" data-line-number="51"><span class="st">             </span><span class="kw">ungroup</span>()</a>
-<a class="sourceLine" id="cb15-52" data-line-number="52"></a>
-<a class="sourceLine" id="cb15-53" data-line-number="53">  <span class="co">## transform to wide format for accelration and imputation separately using tidyr::spread</span></a>
-<a class="sourceLine" id="cb15-54" data-line-number="54">  accel_mat_i  &lt;-<span class="st"> </span>adf_i <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>imputed) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">spread</span>(time_vec,acceleration)</a>
-<a class="sourceLine" id="cb15-55" data-line-number="55">  impute_mat_i &lt;-<span class="st"> </span>adf_i <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>acceleration) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">spread</span>(time_vec,imputed)</a>
-<a class="sourceLine" id="cb15-56" data-line-number="56">  </a>
-<a class="sourceLine" id="cb15-57" data-line-number="57">  </a>
-<a class="sourceLine" id="cb15-58" data-line-number="58">  <span class="co">## assign subject i's data to the corresponding names </span></a>
-<a class="sourceLine" id="cb15-59" data-line-number="59">  <span class="kw">assign</span>(accel_mat_nms[i], accel_mat_i)</a>
-<a class="sourceLine" id="cb15-60" data-line-number="60">  <span class="kw">assign</span>(impute_mat_nms[i], impute_mat_i)</a>
-<a class="sourceLine" id="cb15-61" data-line-number="61"> </a>
-<a class="sourceLine" id="cb15-62" data-line-number="62">  <span class="co">## clear up the workspace a bit</span></a>
-<a class="sourceLine" id="cb15-63" data-line-number="63">  <span class="kw">rm</span>(accel_i, interval_i, raw_date_i, date_i, </a>
-<a class="sourceLine" id="cb15-64" data-line-number="64">     date_time_vec,date_time_vec_chr,time_vec,date_vec,</a>
-<a class="sourceLine" id="cb15-65" data-line-number="65">     adf_i,accel_mat_i, impute_mat_i)</a>
-<a class="sourceLine" id="cb15-66" data-line-number="66"></a>
-<a class="sourceLine" id="cb15-67" data-line-number="67">}</a>
-<a class="sourceLine" id="cb15-68" data-line-number="68"></a>
-<a class="sourceLine" id="cb15-69" data-line-number="69"><span class="co">## combine the data</span></a>
-<a class="sourceLine" id="cb15-70" data-line-number="70">accel_mat_nms  &lt;-<span class="st"> </span><span class="kw">ls</span>()[<span class="kw">grepl</span>(<span class="st">&quot;accel_mat_[0-9]+&quot;</span>, <span class="kw">ls</span>())]</a>
-<a class="sourceLine" id="cb15-71" data-line-number="71">impute_mat_nms &lt;-<span class="st"> </span><span class="kw">ls</span>()[<span class="kw">grepl</span>(<span class="st">&quot;impute_mat_[0-9]+&quot;</span>, <span class="kw">ls</span>())]</a>
-<a class="sourceLine" id="cb15-72" data-line-number="72"></a>
-<a class="sourceLine" id="cb15-73" data-line-number="73"><span class="kw">eval</span>(<span class="kw">parse</span>(<span class="dt">text=</span><span class="kw">paste0</span>(<span class="st">&quot;accel_mat &lt;- bind_rows(&quot;</span>, <span class="kw">paste0</span>(accel_mat_nms, <span class="dt">collapse=</span><span class="st">&quot;,&quot;</span>),<span class="st">&quot;)&quot;</span>)))</a>
-<a class="sourceLine" id="cb15-74" data-line-number="74"><span class="kw">eval</span>(<span class="kw">parse</span>(<span class="dt">text=</span><span class="kw">paste0</span>(<span class="st">&quot;impute_mat &lt;- bind_rows(&quot;</span>, <span class="kw">paste0</span>(impute_mat_nms, <span class="dt">collapse=</span><span class="st">&quot;,&quot;</span>),<span class="st">&quot;)&quot;</span>)))</a></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="co">## get file names for all 5-second level files in the directory</span></a>
+<a class="sourceLine" id="cb13-2" data-line-number="2">data_<span class="dv">5</span>_sec_ls &lt;-<span class="st"> </span><span class="kw">list.files</span>(data_path_5sec)</a>
+<a class="sourceLine" id="cb13-3" data-line-number="3"><span class="co">## total number of subejcts to loop over </span></a>
+<a class="sourceLine" id="cb13-4" data-line-number="4">nid &lt;-<span class="st"> </span><span class="kw">length</span>(data_<span class="dv">5</span>_sec_ls)</a>
+<a class="sourceLine" id="cb13-5" data-line-number="5"><span class="co">## extract all subject ids</span></a>
+<a class="sourceLine" id="cb13-6" data-line-number="6">eid &lt;-<span class="st"> </span><span class="kw">str_extract</span>(data_<span class="dv">5</span>_sec_ls, <span class="st">&quot;[0-9]+&quot;</span>)</a>
+<a class="sourceLine" id="cb13-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb13-8" data-line-number="8"><span class="co">## create vector of names for wide-format data </span></a>
+<a class="sourceLine" id="cb13-9" data-line-number="9">accel_mat_nms  &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;accel_mat_&quot;</span>,<span class="dv">1</span><span class="op">:</span>nid)</a>
+<a class="sourceLine" id="cb13-10" data-line-number="10">impute_mat_nms &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;impute_mat_&quot;</span>,<span class="dv">1</span><span class="op">:</span>nid)</a>
+<a class="sourceLine" id="cb13-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb13-12" data-line-number="12"><span class="co">## loop over subjects</span></a>
+<a class="sourceLine" id="cb13-13" data-line-number="13"><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span>nid){</a>
+<a class="sourceLine" id="cb13-14" data-line-number="14">  </a>
+<a class="sourceLine" id="cb13-15" data-line-number="15">  <span class="co">## read in subject i's data</span></a>
+<a class="sourceLine" id="cb13-16" data-line-number="16">  accel_i &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="kw">file.path</span>(data_path_5sec, data_<span class="dv">5</span>_sec_ls[i]), <span class="dt">header=</span><span class="ot">TRUE</span>, <span class="dt">sep=</span><span class="st">&quot;,&quot;</span>)</a>
+<a class="sourceLine" id="cb13-17" data-line-number="17">  </a>
+<a class="sourceLine" id="cb13-18" data-line-number="18">  <span class="co">## verify the sampling rate for the data is 5 seconds</span></a>
+<a class="sourceLine" id="cb13-19" data-line-number="19">  (interval_i &lt;-<span class="st"> </span><span class="kw">str_replace</span>(<span class="kw">names</span>(accel_i)[<span class="dv">1</span>], <span class="st">&quot;(.*sampleRate</span><span class="ch">\\</span><span class="st">.+)([0-9]+</span><span class="ch">\\</span><span class="st">.[aA-zZ]+)&quot;</span>,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">2&quot;</span>))</a>
+<a class="sourceLine" id="cb13-20" data-line-number="20">  <span class="cf">if</span>(interval_i <span class="op">!=</span><span class="st"> &quot;5.seconds&quot;</span>) <span class="cf">next</span></a>
+<a class="sourceLine" id="cb13-21" data-line-number="21">  </a>
+<a class="sourceLine" id="cb13-22" data-line-number="22">  <span class="co">## get portion of the column names which indicates start and stop dates/times</span></a>
+<a class="sourceLine" id="cb13-23" data-line-number="23">  raw_date_i &lt;-<span class="st"> </span><span class="kw">str_extract_all</span>(<span class="kw">names</span>(accel_i)[<span class="dv">1</span>], <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.{3,3}([0-9]+</span><span class="ch">\\</span><span class="st">.){5,5}[0-9]+&quot;</span>)[[<span class="dv">1</span>]]</a>
+<a class="sourceLine" id="cb13-24" data-line-number="24">  <span class="co">## extract start and stop dates/times</span></a>
+<a class="sourceLine" id="cb13-25" data-line-number="25">  date_i     &lt;-<span class="st"> </span><span class="kw">str_replace_all</span>(raw_date_i, <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.{3,3}&quot;</span>,<span class="st">&quot;&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb13-26" data-line-number="26"><span class="st">                      </span><span class="kw">str_replace_all</span>(<span class="st">&quot;</span><span class="ch">\\</span><span class="st">.&quot;</span>,<span class="st">&quot;-&quot;</span>) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb13-27" data-line-number="27"><span class="st">                      </span><span class="kw">str_replace_all</span>(<span class="st">&quot;([0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})-([0-9]{2,2})&quot;</span>,<span class="st">&quot;</span><span class="ch">\\</span><span class="st">1 </span><span class="ch">\\</span><span class="st">2:</span><span class="ch">\\</span><span class="st">3:</span><span class="ch">\\</span><span class="st">4&quot;</span>)</a>
+<a class="sourceLine" id="cb13-28" data-line-number="28">  <span class="co">## create a vector of date-times corresponding to observed data</span></a>
+<a class="sourceLine" id="cb13-29" data-line-number="29">  <span class="co">## note that we set the time zone to be UTC as the 5-second level data has already had </span></a>
+<a class="sourceLine" id="cb13-30" data-line-number="30">  <span class="co">## time-zone information accounted for</span></a>
+<a class="sourceLine" id="cb13-31" data-line-number="31">  date_time_vec     &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="kw">ymd_hms</span>(date_i[<span class="dv">1</span>], <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>),<span class="kw">ymd_hms</span>(date_i[<span class="dv">2</span>], <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>), <span class="dt">by=</span><span class="st">&quot;5 secs&quot;</span>)</a>
+<a class="sourceLine" id="cb13-32" data-line-number="32">  date_time_vec_chr &lt;-<span class="st"> </span><span class="kw">as.POSIXlt</span>(date_time_vec, <span class="dt">tz=</span><span class="st">&quot;UTC&quot;</span>)</a>
+<a class="sourceLine" id="cb13-33" data-line-number="33">  </a>
+<a class="sourceLine" id="cb13-34" data-line-number="34">  <span class="co">## separate out the date and time components of the date/time vector</span></a>
+<a class="sourceLine" id="cb13-35" data-line-number="35">  time_vec &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%02d:%02d&quot;</span>, <span class="kw">hour</span>(date_time_vec), <span class="kw">minute</span>(date_time_vec))</a>
+<a class="sourceLine" id="cb13-36" data-line-number="36">  time_vec &lt;-<span class="st"> </span><span class="kw">factor</span>(time_vec, <span class="dt">levels =</span> utimes)</a>
+<a class="sourceLine" id="cb13-37" data-line-number="37">  date_vec &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%04d-%02d-%02d&quot;</span>,<span class="kw">year</span>(date_time_vec), <span class="kw">month</span>(date_time_vec),<span class="kw">day</span>(date_time_vec))</a>
+<a class="sourceLine" id="cb13-38" data-line-number="38"></a>
+<a class="sourceLine" id="cb13-39" data-line-number="39">  <span class="co">## combine aceleration and date data</span></a>
+<a class="sourceLine" id="cb13-40" data-line-number="40">  adf_i  &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="st">&quot;eid&quot;</span>=eid[i], accel_i, time_vec, date_vec, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb13-41" data-line-number="41">  <span class="co">## change column name of acceleration column</span></a>
+<a class="sourceLine" id="cb13-42" data-line-number="42">  <span class="kw">colnames</span>(adf_i)[<span class="dv">2</span>] &lt;-<span class="st"> &quot;acceleration&quot;</span></a>
+<a class="sourceLine" id="cb13-43" data-line-number="43">  <span class="co">## aggregate data to the minute level</span></a>
+<a class="sourceLine" id="cb13-44" data-line-number="44">  adf_i &lt;-<span class="st"> </span>adf_i <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb13-45" data-line-number="45"><span class="st">             </span><span class="co">## group at the minute level</span></a>
+<a class="sourceLine" id="cb13-46" data-line-number="46"><span class="st">             </span><span class="kw">group_by</span>(date_vec, time_vec) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb13-47" data-line-number="47"><span class="st">             </span><span class="co">## obtain mean and number of not imputed minutes</span></a>
+<a class="sourceLine" id="cb13-48" data-line-number="48"><span class="st">             </span><span class="kw">summarize</span>(<span class="st">&quot;acceleration&quot;</span> =<span class="st"> </span><span class="kw">mean</span>(acceleration,<span class="dt">na.rm=</span><span class="ot">TRUE</span>),</a>
+<a class="sourceLine" id="cb13-49" data-line-number="49">                      <span class="st">&quot;imputed&quot;</span> =<span class="st"> </span><span class="kw">sum</span>(<span class="dv">1</span><span class="op">-</span>imputed,<span class="dt">na.rm=</span><span class="ot">TRUE</span>),</a>
+<a class="sourceLine" id="cb13-50" data-line-number="50">                      <span class="st">&quot;eid&quot;</span> =<span class="st"> </span>eid[<span class="dv">1</span>]) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb13-51" data-line-number="51"><span class="st">             </span><span class="kw">ungroup</span>()</a>
+<a class="sourceLine" id="cb13-52" data-line-number="52"></a>
+<a class="sourceLine" id="cb13-53" data-line-number="53">  <span class="co">## transform to wide format for accelration and imputation separately using tidyr::spread</span></a>
+<a class="sourceLine" id="cb13-54" data-line-number="54">  accel_mat_i  &lt;-<span class="st"> </span>adf_i <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>imputed) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">spread</span>(time_vec,acceleration)</a>
+<a class="sourceLine" id="cb13-55" data-line-number="55">  impute_mat_i &lt;-<span class="st"> </span>adf_i <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>acceleration) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">spread</span>(time_vec,imputed)</a>
+<a class="sourceLine" id="cb13-56" data-line-number="56">  </a>
+<a class="sourceLine" id="cb13-57" data-line-number="57">  </a>
+<a class="sourceLine" id="cb13-58" data-line-number="58">  <span class="co">## assign subject i's data to the corresponding names </span></a>
+<a class="sourceLine" id="cb13-59" data-line-number="59">  <span class="kw">assign</span>(accel_mat_nms[i], accel_mat_i)</a>
+<a class="sourceLine" id="cb13-60" data-line-number="60">  <span class="kw">assign</span>(impute_mat_nms[i], impute_mat_i)</a>
+<a class="sourceLine" id="cb13-61" data-line-number="61"> </a>
+<a class="sourceLine" id="cb13-62" data-line-number="62">  <span class="co">## clear up the workspace a bit</span></a>
+<a class="sourceLine" id="cb13-63" data-line-number="63">  <span class="kw">rm</span>(accel_i, interval_i, raw_date_i, date_i, </a>
+<a class="sourceLine" id="cb13-64" data-line-number="64">     date_time_vec,date_time_vec_chr,time_vec,date_vec,</a>
+<a class="sourceLine" id="cb13-65" data-line-number="65">     adf_i,accel_mat_i, impute_mat_i)</a>
+<a class="sourceLine" id="cb13-66" data-line-number="66"></a>
+<a class="sourceLine" id="cb13-67" data-line-number="67">}</a>
+<a class="sourceLine" id="cb13-68" data-line-number="68"></a>
+<a class="sourceLine" id="cb13-69" data-line-number="69"><span class="co">## combine the data</span></a>
+<a class="sourceLine" id="cb13-70" data-line-number="70">accel_mat_nms  &lt;-<span class="st"> </span><span class="kw">ls</span>()[<span class="kw">grepl</span>(<span class="st">&quot;accel_mat_[0-9]+&quot;</span>, <span class="kw">ls</span>())]</a>
+<a class="sourceLine" id="cb13-71" data-line-number="71">impute_mat_nms &lt;-<span class="st"> </span><span class="kw">ls</span>()[<span class="kw">grepl</span>(<span class="st">&quot;impute_mat_[0-9]+&quot;</span>, <span class="kw">ls</span>())]</a>
+<a class="sourceLine" id="cb13-72" data-line-number="72"></a>
+<a class="sourceLine" id="cb13-73" data-line-number="73"><span class="kw">eval</span>(<span class="kw">parse</span>(<span class="dt">text=</span><span class="kw">paste0</span>(<span class="st">&quot;accel_mat &lt;- bind_rows(&quot;</span>, <span class="kw">paste0</span>(accel_mat_nms, <span class="dt">collapse=</span><span class="st">&quot;,&quot;</span>),<span class="st">&quot;)&quot;</span>)))</a>
+<a class="sourceLine" id="cb13-74" data-line-number="74"><span class="kw">eval</span>(<span class="kw">parse</span>(<span class="dt">text=</span><span class="kw">paste0</span>(<span class="st">&quot;impute_mat &lt;- bind_rows(&quot;</span>, <span class="kw">paste0</span>(impute_mat_nms, <span class="dt">collapse=</span><span class="st">&quot;,&quot;</span>),<span class="st">&quot;)&quot;</span>)))</a></code></pre></div>
 </div>
 </div>
 <div id="analysis-pipeline-using-the-transformed-data" class="section level1">
@@ -400,6 +386,8 @@ code span.ot { color: #007020; }
 <div id="identify-good-accelerometry-data" class="section level2">
 <h2><span class="header-section-number">2.1</span> Identify “good” accelerometry data</h2>
 <p>Identifying “good” accelerometry data typically has two major components. The first component is to determine whether the data are reliable (i.e. was the device appropriately calibrated). Once the a particular devices’ data has been deemed “reliable”, one then identifies participant complinace with weartime protocols.</p>
+<div id="identify-good-accelerometry-data-reliable-data" class="section level3">
+<h3><span class="header-section-number">2.1.1</span> Identify “good” accelerometry data: reliable data</h3>
 <p>Here, we opt for a conservative definition of “reliable” data based on variables derived from the UK Biobank team. Specifically, we use three UK Biobank derived variables which relate to accelerometry data quality which are described in the <a href="http://biobank.ndph.ox.ac.uk/showcase/">data showcase</a> on the UK Biobank website. These varibales are:</p>
 <ol style="list-style-type: decimal">
 <li><a href="http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=90015">Data field 90015</a>: Did the sbject have at least 72 hours in each one hour period of the 24-hour cycle (across multiple days)</li>
@@ -407,31 +395,92 @@ code span.ot { color: #007020; }
 <li><a href="http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=90017">Data field 90017</a>: Was the device calibrated using a subjects’ own data?</li>
 </ol>
 <p>An individual is determined to have reliable data if the answer to each of the three above questions is yes. Because these variables are not included in the 5-second level data, we do not have them in the transformed data frames. As such we need to merge them from a different data source. The R script “make_data_directories.R” referenced at the beginning of this vignette contains a path where these data are stored (character vector “data_path_accel_quality_flags”) and the name of the file (character vector “data_accel_quality_flags”). We provide some code which load,s merges, and subsets the data based on these criteria below.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="co">## read in data with data quality flags</span></a>
-<a class="sourceLine" id="cb16-2" data-line-number="2">xdf     &lt;-<span class="st"> </span><span class="kw">read_rds</span>(<span class="kw">file.path</span>(data_path_accel_quality_flags, data_accel_quality_flags))</a>
-<a class="sourceLine" id="cb16-3" data-line-number="3"><span class="co"># subset to just those individuals with &quot;good&quot; quality data as measured by UKB</span></a>
-<a class="sourceLine" id="cb16-4" data-line-number="4">xdf &lt;-<span class="st"> </span>xdf <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb16-5" data-line-number="5"><span class="st">  </span><span class="kw">mutate</span>(</a>
-<a class="sourceLine" id="cb16-6" data-line-number="6">    <span class="co">## create an indicator of whether accelerometry data was deeemed &quot;good&quot; by UKB team</span></a>
-<a class="sourceLine" id="cb16-7" data-line-number="7">    <span class="st">&quot;good_accel_data_ukb&quot;</span> =<span class="st"> </span>invitation_to_physical_activity_study_acceptance <span class="op">%in%</span><span class="st"> &quot;Completed&quot;</span> <span class="op">&amp;</span></a>
-<a class="sourceLine" id="cb16-8" data-line-number="8"><span class="st">                            </span>data_quality_good_wear_time <span class="op">%in%</span><span class="st"> &quot;Yes&quot;</span> <span class="op">&amp;</span></a>
-<a class="sourceLine" id="cb16-9" data-line-number="9"><span class="st">                            </span>data_quality_good_calibration <span class="op">%in%</span><span class="st"> &quot;Yes&quot;</span> <span class="op">&amp;</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb16-10" data-line-number="10"><span class="st">                            </span>data_quality_calibrated_on_own_data <span class="op">%in%</span><span class="st"> &quot;Yes&quot;</span></a>
-<a class="sourceLine" id="cb16-11" data-line-number="11">      ) <span class="op">%&gt;%</span><span class="st"> </span></a>
-<a class="sourceLine" id="cb16-12" data-line-number="12"><span class="st">    </span><span class="kw">filter</span>(good_accel_data_ukb <span class="op">==</span><span class="st"> </span><span class="ot">TRUE</span>)</a>
-<a class="sourceLine" id="cb16-13" data-line-number="13"><span class="co"># number of rows is the number of participants who met these data quality criteria</span></a>
-<a class="sourceLine" id="cb16-14" data-line-number="14"><span class="kw">dim</span>(xdf)</a></code></pre></div>
-<pre><code>## [1] 96540   150</code></pre>
-<p>Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour wear time protocol. That is, participants were instructed to wear the devices continuously. As such, we determiend a “compliant” (i.e. good) calendar day of data as one where the participant was estimated to be wearing the device at least 95% of the day (1368 minutes). Estimated wear time is calculated using Correspondingly, adherence</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="co">## read in data with data quality flags</span></a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">xdf     &lt;-<span class="st"> </span><span class="kw">read_rds</span>(<span class="kw">file.path</span>(data_path_accel_quality_flags, data_accel_quality_flags))</a>
+<a class="sourceLine" id="cb14-3" data-line-number="3"><span class="co"># subset to just those individuals with &quot;good&quot; quality data as measured by UKB</span></a>
+<a class="sourceLine" id="cb14-4" data-line-number="4">xdf &lt;-<span class="st"> </span>xdf <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb14-5" data-line-number="5"><span class="st">  </span><span class="kw">mutate</span>(</a>
+<a class="sourceLine" id="cb14-6" data-line-number="6">    <span class="co">## create an indicator of whether accelerometry data was deeemed &quot;good&quot; by UKB team</span></a>
+<a class="sourceLine" id="cb14-7" data-line-number="7">    <span class="st">&quot;good_accel_data_ukb&quot;</span> =<span class="st"> </span>data_quality_good_wear_time <span class="op">%in%</span><span class="st"> &quot;Yes&quot;</span> <span class="op">&amp;</span></a>
+<a class="sourceLine" id="cb14-8" data-line-number="8"><span class="st">                            </span>data_quality_good_calibration <span class="op">%in%</span><span class="st"> &quot;Yes&quot;</span> <span class="op">&amp;</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb14-9" data-line-number="9"><span class="st">                            </span>data_quality_calibrated_on_own_data <span class="op">%in%</span><span class="st"> &quot;Yes&quot;</span></a>
+<a class="sourceLine" id="cb14-10" data-line-number="10">      ) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb14-11" data-line-number="11"><span class="st">    </span><span class="kw">filter</span>(good_accel_data_ukb <span class="op">==</span><span class="st"> </span><span class="ot">TRUE</span>)  </a>
+<a class="sourceLine" id="cb14-12" data-line-number="12"><span class="co"># subset PA and imputation data to just those who meet the data quality criteria</span></a>
+<a class="sourceLine" id="cb14-13" data-line-number="13">accel_mat  &lt;-<span class="st"> </span>accel_mat <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(eid <span class="op">%in%</span><span class="st"> </span>xdf<span class="op">$</span>eid)</a>
+<a class="sourceLine" id="cb14-14" data-line-number="14">impute_mat &lt;-<span class="st"> </span>impute_mat <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(eid <span class="op">%in%</span><span class="st"> </span>xdf<span class="op">$</span>eid)</a></code></pre></div>
+<p>Two important notes. First, the data we load with data quality flags has already removed participants who have withdrawn consent to participant in the study. This is a critical part of any data analysis pipeline using the UK Biobank data. Second, any participants who did not complete the accelerometry portion of the study will have missing values for these data quality variables and will thus be filtered out using the code above.</p>
+</div>
+<div id="identify-good-accelerometry-data-weartime-protocol" class="section level3">
+<h3><span class="header-section-number">2.1.2</span> Identify “good” accelerometry data: weartime protocol</h3>
+<p>Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour wear time protocol. That is, participants were instructed to wear the devices continuously. We determiend a “compliant” (i.e. good) calendar day of data as one where the participant was estimated to be wearing the device at least 95% of the day (1368 minutes). Estimated wear time is calculated using the 1440+ imputation data matrix as imputation was done whenever the UK Biobank team determined an individual was likely not wearing the device. Thus, imputation indicators act as a reproducible proxy for estimated wear/non-wear time. We note using these imputation indicators suggests a very high degree of compliance with weartime protocols relative to other studies with 24 hour weartime protocols. This may suggest an overly optimistic wear time assessment, though we do not pursue this topic further here. Finally, it is standard practice when analyzing accelerometry data to apply an exclusion criteria based on subjects with insufficient “good” days of data. Here we use the often used <span class="math inline">\(&lt;3\)</span> days of “good” data as an exlcusion criteria.</p>
+<p>To make this a bit more precise, for a given threshold of percent non-imputed data, <span class="math inline">\(c\)</span>, a good day is one where <span class="math inline">\((1440*12)^{-1}\sum_{t=1}^{1440}NI_{ijt} \geq c\)</span> where we divide by <span class="math inline">\(1440*12\)</span> because <span class="math inline">\(NI_{ijt}\)</span> ranges from <span class="math inline">\(0\)</span> to <span class="math inline">\(12\)</span>. We then subset to subjects with at least 3 days of good data and subject-days which meet the aforementioned non-imputation (wear time) criteria. Let <span class="math inline">\(G_{ij} = 1[(1440*12)^{-1}\sum_{t=1}^{1440}NI_{ijt} \geq 0.95]\)</span> be an indicator for whether subject <span class="math inline">\(i\)</span>’s day <span class="math inline">\(j\)</span> of data is considered good (<span class="math inline">\(G_{ij} = 1\)</span>) or not (<span class="math inline">\(G_{ij} = 0\)</span>). Then, we define <span class="math inline">\(I^* = \{i: \sum_{j=1}^{J_i} G_{ij} \geq 3\}\)</span> be the set of all subjects with at least 3 days of good data and <span class="math inline">\(J_i^* = \{j: G_{ij} = 1\}\)</span> be the set of all good days of data for subject <span class="math inline">\(i\)</span>.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="co">## re-name acceleration columns to be easier to work with in matrix/data frame operations</span></a>
+<a class="sourceLine" id="cb15-2" data-line-number="2">accel_cols &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;MIN&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">1440</span>)</a>
+<a class="sourceLine" id="cb15-3" data-line-number="3"><span class="kw">colnames</span>(accel_mat) &lt;-<span class="st"> </span><span class="kw">colnames</span>(impute_mat) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;date&quot;</span>,<span class="st">&quot;eid&quot;</span>,accel_cols)</a>
+<a class="sourceLine" id="cb15-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb15-5" data-line-number="5"><span class="co">## calcualate percent of observed day data which are good, then define a &quot;good&quot; </span></a>
+<a class="sourceLine" id="cb15-6" data-line-number="6"><span class="co">## day as those with less than 5% imputed data</span></a>
+<a class="sourceLine" id="cb15-7" data-line-number="7">impute_mat<span class="op">$</span>pct_good_obs &lt;-<span class="st"> </span><span class="kw">rowSums</span>(impute_mat[,<span class="kw">paste0</span>(<span class="st">&quot;MIN&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">1440</span>)], <span class="dt">na.rm=</span><span class="ot">TRUE</span>)<span class="op">/</span>(<span class="dv">1440</span><span class="op">*</span><span class="dv">12</span>)</a>
+<a class="sourceLine" id="cb15-8" data-line-number="8">impute_mat<span class="op">$</span>good_day     &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(impute_mat<span class="op">$</span>pct_good_obs <span class="op">&gt;=</span><span class="st"> </span><span class="fl">0.95</span>)</a>
+<a class="sourceLine" id="cb15-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb15-10" data-line-number="10"><span class="co">## merge the good day information with acceleration data</span></a>
+<a class="sourceLine" id="cb15-11" data-line-number="11"><span class="co">## this is a bit of defensive programming as we already know the rows of </span></a>
+<a class="sourceLine" id="cb15-12" data-line-number="12"><span class="co">## accel_mat and impute_mat correspond to the same subject-day</span></a>
+<a class="sourceLine" id="cb15-13" data-line-number="13">accel_mat &lt;-<span class="st"> </span></a>
+<a class="sourceLine" id="cb15-14" data-line-number="14"><span class="st">  </span>impute_mat <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb15-15" data-line-number="15"><span class="st">  </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="st">&quot;eid&quot;</span>,<span class="st">&quot;date&quot;</span>,<span class="st">&quot;good_day&quot;</span>,<span class="st">&quot;pct_good_obs&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb15-16" data-line-number="16"><span class="st">  </span><span class="kw">left_join</span>(accel_mat, ., <span class="dt">by=</span><span class="kw">c</span>(<span class="st">&quot;eid&quot;</span>,<span class="st">&quot;date&quot;</span>)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb15-17" data-line-number="17"><span class="st">  </span><span class="kw">group_by</span>(eid) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb15-18" data-line-number="18"><span class="st">  </span><span class="co">## add in day of the week data and calculate subject specific number of good days </span></a>
+<a class="sourceLine" id="cb15-19" data-line-number="19"><span class="st">  </span><span class="co">## separately by weekend and weekday</span></a>
+<a class="sourceLine" id="cb15-20" data-line-number="20"><span class="st">  </span><span class="kw">mutate</span>(<span class="st">&quot;dow&quot;</span> =<span class="st"> </span><span class="kw">wday</span>(date, <span class="dt">label=</span><span class="ot">TRUE</span>),</a>
+<a class="sourceLine" id="cb15-21" data-line-number="21">         <span class="st">&quot;n_good_days&quot;</span> =<span class="st"> </span><span class="kw">sum</span>(good_day),</a>
+<a class="sourceLine" id="cb15-22" data-line-number="22">         <span class="st">&quot;n_good_wkdays&quot;</span> =<span class="st"> </span><span class="kw">sum</span>((dow <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Mon&quot;</span>,<span class="st">&quot;Tue&quot;</span>,<span class="st">&quot;Wed&quot;</span>,<span class="st">&quot;Thu&quot;</span>,<span class="st">&quot;Fri&quot;</span>)) <span class="op">&amp;</span><span class="st"> </span>(good_day<span class="op">==</span><span class="dv">1</span>) ),</a>
+<a class="sourceLine" id="cb15-23" data-line-number="23">         <span class="st">&quot;n_good_wknd&quot;</span> =<span class="st"> </span><span class="kw">sum</span>((dow <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Sat&quot;</span>,<span class="st">&quot;Sun&quot;</span>))) <span class="op">&amp;</span><span class="st"> </span>(good_day<span class="op">==</span><span class="dv">1</span>)) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb15-24" data-line-number="24"><span class="st">  </span><span class="kw">ungroup</span>() </a>
+<a class="sourceLine" id="cb15-25" data-line-number="25"></a>
+<a class="sourceLine" id="cb15-26" data-line-number="26"><span class="co">## subset days of acceleration data to just those &quot;good&quot; days PLUS</span></a>
+<a class="sourceLine" id="cb15-27" data-line-number="27"><span class="co">## participants who have &gt;= 3 &quot;good&quot; days </span></a>
+<a class="sourceLine" id="cb15-28" data-line-number="28">accel_mat &lt;-<span class="st"> </span></a>
+<a class="sourceLine" id="cb15-29" data-line-number="29"><span class="st">  </span>accel_mat <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb15-30" data-line-number="30"><span class="st">  </span><span class="kw">filter</span>(n_good_days <span class="op">&gt;=</span><span class="st"> </span><span class="dv">3</span> <span class="op">&amp;</span><span class="st"> </span>good_day <span class="op">==</span><span class="st"> </span><span class="dv">1</span>)  </a></code></pre></div>
+<p>We can see that after applying this exclusion criteria we have a total of 93745 participants with a total of 514773 days of good accelerometery data (average 5.49 days per person).</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="co">## number of subejcts who met our criteria for good data</span></a>
+<a class="sourceLine" id="cb16-2" data-line-number="2"><span class="kw">length</span>(<span class="kw">unique</span>(accel_mat<span class="op">$</span>eid))</a></code></pre></div>
+<pre><code>## [1] 93745</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" data-line-number="1"><span class="co">## number of good days of data among those subjects</span></a>
+<a class="sourceLine" id="cb18-2" data-line-number="2"><span class="kw">nrow</span>(accel_mat)</a></code></pre></div>
+<pre><code>## [1] 514773</code></pre>
+</div>
 </div>
 <div id="propose-a-method-for-handling-imputed-andor-missing-data" class="section level2">
 <h2><span class="header-section-number">2.2</span> Propose a method for handling imputed and/or missing data</h2>
+<p>Given our relatively strict definition of a “good” day of data (<span class="math inline">\(\geq 95\%\)</span> estimated wear time) we have relatively few missing and/or imputed data. However, two important consequences of this choice are as follows:</p>
+<ol style="list-style-type: decimal">
+<li>Our choice of wear time threshold of 1368 minutes allows for the inclusion of days corresponding to daylight savings forward (lose an hour) as these days have one hour of missing data from 1AM-2AM imputed by the Biobank team. These missing data require some form of imputation if they are to be used</li>
+<li>Days 1 and 8 of wear are thrown out for all subjects because recording starts and stops at 10AM on these days, respectively</li>
+</ol>
+<p>We have found that functional principal components analysis (fPCA) provides a relatively fast means of imputing missing data that performs well in practice. Essentially this procedure assumes there is a smooth underlying acceleration function (on the log scale) which we measure with error. Here we use an ultra fast algorithm <span class="citation">Xiao et al. (2016)</span> which is implemented in the <strong>R</strong> package <strong>refund</strong> <span class="citation">Goldsmith et al. (2019)</span>. One drawback of fPCA in this context is that the result is not guaranteed to be non-negative, so we truncate</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" data-line-number="1"><span class="co">## perform fpca on the log transformed acceleration data</span></a>
+<a class="sourceLine" id="cb20-2" data-line-number="2"><span class="co">## we will use this for two purposes:</span></a>
+<a class="sourceLine" id="cb20-3" data-line-number="3"><span class="co">##   1) to impute the (relatively small) number of &quot;missing&quot; data</span></a>
+<a class="sourceLine" id="cb20-4" data-line-number="4"><span class="co">##   2) calculate surrogate measures based on PCA </span></a>
+<a class="sourceLine" id="cb20-5" data-line-number="5">X        &lt;-<span class="st"> </span><span class="kw">as.matrix</span>(accel_mat[,<span class="kw">paste0</span>(<span class="st">&quot;MIN&quot;</span>,<span class="dv">1</span><span class="op">:</span><span class="dv">1440</span>)])</a>
+<a class="sourceLine" id="cb20-6" data-line-number="6">fit_fpca &lt;-<span class="st"> </span><span class="kw">fpca.face</span>(<span class="kw">log</span>(<span class="dv">1</span><span class="op">+</span>X), <span class="dt">knots=</span><span class="dv">50</span>)</a>
+<a class="sourceLine" id="cb20-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb20-8" data-line-number="8"><span class="co">## impute missing acceleration data among good days using fpca predicted values</span></a>
+<a class="sourceLine" id="cb20-9" data-line-number="9"><span class="co">## truncate below by 0 since ENMO is bounded below by 0 by definition</span></a>
+<a class="sourceLine" id="cb20-10" data-line-number="10">inx_na    &lt;-<span class="st"> </span><span class="kw">is.na</span>(X)</a>
+<a class="sourceLine" id="cb20-11" data-line-number="11">X[inx_na] &lt;-<span class="st"> </span><span class="kw">pmax</span>(<span class="dv">0</span>,<span class="kw">exp</span>(fit_fpca<span class="op">$</span>Yhat[inx_na]) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb20-12" data-line-number="12"><span class="kw">rm</span>(<span class="dt">list=</span><span class="kw">c</span>(<span class="st">&quot;fit_fpca&quot;</span>, <span class="st">&quot;inx_na&quot;</span>))</a></code></pre></div>
 </div>
 <div id="exploratory-plots-of-daily-activity-profiles" class="section level2">
 <h2><span class="header-section-number">2.3</span> Exploratory plots of daily activity profiles</h2>
 </div>
 <div id="calculating-scalar-summaries-of-activity-profiles" class="section level2">
 <h2><span class="header-section-number">2.4</span> Calculating scalar summaries of activity profiles</h2>
+<p>An additional vignette on calculating a wider array of scalar summaries is forthcoming.</p>
 </div>
 </div>
 <div id="references" class="section level1 unnumbered">
@@ -440,8 +489,14 @@ code span.ot { color: #007020; }
 <div id="ref-ukb_accel">
 <p>Doherty, Dan AND Hammerla, Aiden AND Jackson. 2017. “Large Scale Population Assessment of Physical Activity Using Wrist Worn Accelerometers: The UK Biobank Study.” <em>PLOS ONE</em> 12 (2). Public Library of Science: 1–14. <a href="https://doi.org/10.1371/journal.pone.0169649">https://doi.org/10.1371/journal.pone.0169649</a>.</p>
 </div>
+<div id="ref-refundR">
+<p>Goldsmith, Jeff, Fabian Scheipl, Lei Huang, Julia Wrobel, Chongzhi Di, Jonathan Gellar, Jaroslaw Harezlak, et al. 2019. <em>Refund: Regression with Functional Data</em>. <a href="https://CRAN.R-project.org/package=refund">https://CRAN.R-project.org/package=refund</a>.</p>
+</div>
 <div id="ref-Leroux2019">
 <p>Leroux, Andrew, Junrui Di, Ekaterina Smirnova, Elizabeth J Mcguffey, Quy Cao, Elham Bayatmokhtari, Lucia Tabacu, Vadim Zipunnikov, Jacek K Urbanek, and Ciprian Crainiceanu. 2019. “Organizing and Analyzing the Activity Data in Nhanes.” <em>Statistics in Biosciences</em> 11: 262–87. <a href="https://doi.org/10.1007/s12561-018-09229-9">https://doi.org/10.1007/s12561-018-09229-9</a>.</p>
+</div>
+<div id="ref-fpca_face">
+<p>Xiao, Luo, Vadim Zipunnikov, David Ruppert, and Ciprian Crainiceanu. 2016. “Fast Covariance Estimation for High-Dimensional Functional Data.” <em>Statistical Computing</em> 16 (2): 409–21. <a href="https://doi.org/10.1007/s11222-014-9485-x">https://doi.org/10.1007/s11222-014-9485-x</a>.</p>
 </div>
 </div>
 </div>
