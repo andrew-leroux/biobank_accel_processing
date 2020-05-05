@@ -92,8 +92,8 @@ To tranfrom an individuals' data from long to wide format, we use regular expres
 ## for all participants when we transform from long to wide
 utimes <- sprintf("%02d:%02d", rep(0:23, each=60), rep(0:59, 24))
 
-## get subject identifier (eid)
-eid_1 <- str_extract(data_5_sec_ls[1], "[0-9]+")
+## read in subject 1's data
+accel_1 <- read.table(file.path(data_path_5sec, data_5_sec_ls[1]), header=TRUE, sep=",")
 
 ## verify the sampling rate for the data is 5 seconds
 (interval_1 <- str_replace(names(accel_1)[1], "(.*sampleRate\\.+)([0-9]+\\.[aA-zZ]+)","\\2"))
