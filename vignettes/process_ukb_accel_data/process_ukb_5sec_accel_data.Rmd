@@ -314,9 +314,13 @@ Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour we
 Finally, it is standard practice when analyzing accelerometry data to apply an exclusion criteria based on subjects with insufficient "good" days of data. Here we use the often used $<3$ days of "good" data as an exlcusion criteria. 
 
 ```{r identify_good_accel_data_weartime}
+## re-name acceleration columns to be easier to work with in matrix/data frame operations
+accel_cols <- paste0("MIN",1:1440)
+colnames(accel_mat) <- colnames(impute_mat) <- c("date","eid",accel_cols)
+
 ## calcualate percent of observed day data which are good, then define a "good" 
 ## day as those with less than 5% imputed data
-impute_mat$pct_good_obs <- rowSums(impute_mat[,utimes], na.rm=TRUE)/(1440*12)
+impute_mat$pct_good_obs <- rowSums(impute_mat[,paste0("MIN",1:1440)], na.rm=TRUE)/(1440*12)
 impute_mat$good_day     <- as.numeric(impute_mat$pct_good_obs >= 0.95)
 
 ## merge the good day information with acceleration data
@@ -358,6 +362,7 @@ round(prop.table(table(accel_mat$eid)),3)
 
 One important consequence of our choice of wear time threshold of 1368 minutes is that it allows for the inclusion of days corresponding to daylight savings forward (lose an hour) as these days have one hour of missing data from 1AM-2AM imputed by the Biobank team. 
 
+
 ## Exploratory plots of daily activity profiles
 
 
@@ -365,6 +370,8 @@ One important consequence of our choice of wear time threshold of 1368 minutes i
 
 
 ```
+
+
 
 
 ## Calculating scalar summaries of activity profiles
