@@ -28,7 +28,7 @@ With the exception of the **lubridate** package used for manipulating date-time 
 
 NOTE: If processing the UKB accelerometry data locally, all code is self contained with the exception of setting the data path. Once you've changed this one line of code, all the remaining R code should run locally without any further changes. Importantly, this code assumes that the only files you have in this directory are 5-second level UKB accelerometry data. 
 
-```{r packages, message=FALSE}
+```{r packages, message=FALSE, results="hide"}
 ## If packages are not already installed, first install them and then 
 ## load all requisite packages
 pckgs <- c("readr","tidyr","dplyr","lubridate","stringr")
@@ -61,6 +61,8 @@ data_5_sec_ls[1:5]
 
 The 5-second level data are stored as separate zipped .csv files for each participant. Each subjects' data file contains a header with information on the start and end times/dates of recording and two columns with 5-second acceleration (modified ENMO) and imputation indicators. Importantly, the 5-second level data has already been adjusted for daylight savings time crossovers. Specifically, the UK Biobank team removed 1 hour of data (1:00AM-2:00AM) on days coinciding with the end of daylight savings, and imputed 1 hour of missing data (1:00AM-2:00AM) on days coinciding with the start of daylight savings. 
 
+At a high level, the UK Biobank team imputed data by first estimating non-wear time by looking at long periods of time with implausibly low acceleration recorded by the accelerometer. Then, these periods of estimated non-wear were imputed using average acceleration values at the same time of day using days of data with estiamted wear during that specific time. For a detailed description of data pre-processing steps performed by the UKB as well as the UKB imputation procedure, please see @ukb_accel.
+
 
 
 ```{r example_file}
@@ -68,9 +70,6 @@ accel_1 <- read.table(file.path(data_path_5sec, data_5_sec_ls[1]), header=TRUE, 
 str(accel_1)
 summary(accel_1)
 ```
-
-At a high level, the 
-For a detailed description of data pre-processing steps performed by the UKB as well as the UKB imputation procedure, please see @ukb_accel.
 
 
 
@@ -250,6 +249,8 @@ eval(parse(text=paste0("impute_mat <- bind_rows(", paste0(impute_mat_nms, collap
 
 ```{r load_processed_data, echo=FALSE}
 ## load the processed data since we're not going to run the entire reporocessing in this vignette
+accel_mat  <- read_rds(path=file.path(data_path_processed, "1min_accel.rds"))
+impute_mat <- read_rds(path=file.path(data_path_processed, "1min_impute.rds"))
 ```
 
 
@@ -297,9 +298,10 @@ xdf <- xdf %>%
                             data_quality_good_calibration %in% "Yes" & 
                             data_quality_calibrated_on_own_data %in% "Yes"
       ) %>% 
-    filter(good_accel_data_ukb == TRUE)
-# number of rows is the number of participants who met these data quality criteria
-dim(xdf)
+    filter(good_accel_data_ukb == TRUE)  
+# subset PA and imputation data to just those who meet the data quality criteria
+accel_mat  <- accel_mat %>% filter(eid %in% xdf$eid)
+impute_mat <- impute_mat %>% filter(eid %in% xdf$eid)
 ```
 
 Two important notes. First, the data we load with data quality flags has already removed participants who have withdrawn consent to participant in the study. This is a critical part of any data analysis pipeline using the UK Biobank data. Second, any participants who did not complete the accelerometry portion of the study will have missing values for these data quality variables and will thus be filtered out using the code above. 
@@ -307,23 +309,54 @@ Two important notes. First, the data we load with data quality flags has already
 
 ### Identify "good" accelerometry data: weartime protocol
 
-Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour wear time protocol. That is, participants were instructed to wear the devices continuously. We determiend a "compliant" (i.e. good) calendar day of data as one where the participant was estimated to be wearing the device at least 95\% of the day (1368 minutes). Estimated wear time is calculated using the 1440+ imputation data matrix as imputation was done whenever the UK Biobank team determined an individual was likely not wearing the device. Thus, imputation indicators act as a reproducible proxy for estimated wear/non-wear time. We note using these imputation indicators suggests a very high degree of compliance with weartime protocols relative to other studies with 24 hour weartime protocols. This may suggest an overly optimistic wear time assessment, though we do not pursue this further at the moment.
+Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour wear time protocol. That is, participants were instructed to wear the devices continuously. We determiend a "compliant" (i.e. good) calendar day of data as one where the participant was estimated to be wearing the device at least 95\% of the day (1368 minutes). Estimated wear time is calculated using the 1440+ imputation data matrix as imputation was done whenever the UK Biobank team determined an individual was likely not wearing the device. Thus, imputation indicators act as a reproducible proxy for estimated wear/non-wear time. We note using these imputation indicators suggests a very high degree of compliance with weartime protocols relative to other studies with 24 hour weartime protocols. This may suggest an overly optimistic wear time assessment, though we do not pursue this topic further here.
 
+Finally, it is standard practice when analyzing accelerometry data to apply an exclusion criteria based on subjects with insufficient "good" days of data. Here we use the often used $<3$ days of "good" data as an exlcusion criteria. 
 
 ```{r identify_good_accel_data_weartime}
 ## calcualate percent of observed day data which are good, then define a "good" 
 ## day as those with less than 5% imputed data
 impute_mat$pct_good_obs <- rowSums(impute_mat[,utimes], na.rm=TRUE)/(1440*12)
 impute_mat$good_day     <- as.numeric(impute_mat$pct_good_obs >= 0.95)
+
+## merge the good day information with acceleration data
+## this is a bit of defensive programming as we already know the rows of 
+## accel_mat and impute_mat correspond to the same subject-day
+accel_mat <- 
+  impute_mat %>% 
+  dplyr::select("eid","date","good_day","pct_good_obs") %>% 
+  left_join(accel_mat, ., by=c("eid","date")) %>% 
+  group_by(eid) %>% 
+  ## add in day of the week data and calculate subject specific number of good days 
+  ## separately by weekend and weekday
+  mutate("dow" = wday(date, label=TRUE),
+         "n_good_days" = sum(good_day),
+         "n_good_wkdays" = sum((dow %in% c("Mon","Tue","Wed","Thu","Fri")) & (good_day==1) ),
+         "n_good_wknd" = sum((dow %in% c("Sat","Sun"))) & (good_day==1)) %>%
+  ungroup() 
+
+## subset days of acceleration data to just those "good" days PLUS
+## participants who have >= 3 "good" days 
+accel_mat <- 
+  accel_mat %>% 
+  filter(n_good_days >= 3 & good_day == 1)  
 ```
 
+We can see that after applying this exclusion criteria we have a total of `r length(unique(accel_mat$eid))` participants with a total of `r nrow(accel_mat)` days of good accelerometery data (average `r round(nrow(accel_mat)/length(unique(accel_mat$eid)),2)` days per person).
 
-
+```{r summary_good_data}
+## number of subejcts who met our criteria for good data
+length(unique(accel_mat$eid))
+## number of good days of data among those subjects
+nrow(accel_mat)
+## distribution of number of days of good data per participant
+round(prop.table(table(accel_mat$eid)),3)
+```
 
 
 ## Propose a method for handling imputed and/or missing data
 
-
+One important consequence of our choice of wear time threshold of 1368 minutes is that it allows for the inclusion of days corresponding to daylight savings forward (lose an hour) as these days have one hour of missing data from 1AM-2AM imputed by the Biobank team. 
 
 ## Exploratory plots of daily activity profiles
 
@@ -342,6 +375,7 @@ impute_mat$good_day     <- as.numeric(impute_mat$pct_good_obs >= 0.95)
 
 ```
 
+An additional vignette on calculating a wider array of scalar summaries is forthcoming. 
 
 
 # References
