@@ -86,7 +86,7 @@ Option (1) increases the size of the data by a non-trivial margin and option (2)
 
 To tranfrom an individuals' data from long to wide format, we use regular expressions to parse the first column name to get sampling rate, start, and stop times. Then we transform the data to wide form where each row represents one subject-day 12AM-12AM
 
-```{r tranform_single_1440, echo=TRUE, message=FALSE}
+```{r tranform_single_1440, echo=TRUE, message=FALSE, eval=TRUE}
 ## get subject identifier (eid)
 eid_1 <- str_extract(data_5_sec_ls[1], "[0-9]+")
 
@@ -129,6 +129,10 @@ impute_mat_1 <- adf_1 %>% select(-acceleration) %>% spread(time_vec,imputed)
 Once we have this first subjects' data in
 
 
+```{r explore_1_subj, eval=TRUE}
+str(accel_mat_1)
+```
+
 
 ## Transforming to wide (1440+) format: all subjects
 
@@ -138,12 +142,8 @@ The code below will perform this transformation and merging, however it will tak
 This code is easily parrallelized to run on either multiple cores, or submitted as a batch job on a computing cluster. 
 
 ```{r tranform_all_1440, echo=TRUE, message=FALSE}
-## Indicate the directory where all the 5-second level data are stored
-## This is the only line of code you should need to change to run locally
-data_path     <- "/dcl01/chatterj/data/ukbiobank/phenotype/accelerometer/"
-## Obtain file names for all files in the directory
-data_5_sec_ls <- list.files(file.path(data_path,"intensity"))
-
+## get file names for all 5-second level files in the directory
+data_5_sec_ls <- list.files(data_path_5sec)
 ## total number of subejcts to loop over 
 nid <- length(data_5_sec_ls)
 ## extract all subject ids
