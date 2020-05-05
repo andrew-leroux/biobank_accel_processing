@@ -28,7 +28,7 @@ With the exception of the **lubridate** package used for manipulating date-time 
 
 NOTE: If processing the UKB accelerometry data locally, all code is self contained with the exception of setting the data path. Once you've changed this one line of code, all the remaining R code should run locally without any further changes. Importantly, this code assumes that the only files you have in this directory are 5-second level UKB accelerometry data. 
 
-```{r packages, echo=TRUE, message=FALSE}
+```{r packages, echo=TRUE, message=FALSE, eval=TRUE}
 ## If packages are not already installed, first install them and then 
 ## load all requisite packages
 pckgs <- c("readr","tidyr","dplyr","lubridate","stringr")
@@ -40,7 +40,7 @@ sapply(pckgs, function(x) if(!require(x,character.only=TRUE,quietly=TRUE)) {
 ## where all the 5-second level data are stored
 ## We sore this path as a character vector called "data_path_5sec"
 ## This is the only line of code you should need to change to run locally
-source(file.path(".","code","make_data_directories.R"))
+source(file.path("..","..","code","make_data_directories.R"))
 ## Obtain file names for all files in the directory
 data_5_sec_ls <- list.files(data_path_5sec)
 ```
@@ -49,9 +49,9 @@ The object *data_5_sec_ls* is a vector of file names.  naming convention for the
 
 "subject id"_90004_0_0.csv.gz
 
-These files are compressed csv files. Note that Biobank randomizes subjects' identifiers for each individual application. Thus, no two groups will have identical subject ids. For our application, the first 5 files can be seen below
+These files are compressed csv files. Note that Biobank uses different subject identifiers for each individual application. Thus, no two groups will have identical subject ids. For our application, the first 5 files can be seen below
 
-```{r 5_ids, echo=TRUE, message=FALSE}
+```{r 5_ids, echo=TRUE, message=FALSE, eval=TRUE}
 data_5_sec_ls[1:5]
 ```
 
@@ -66,8 +66,8 @@ The column name associated with the first column provides information regarding 
 
 
 
-```{r example_file, echo=TRUE, message=FALSE}
-accel_1 <- read.table(file.path(data_path,"intensity", data_5_sec_ls[1]), header=TRUE, sep=",")
+```{r example_file, echo=TRUE, message=FALSE, eval=TRUE}
+accel_1 <- read.table(file.path(data_path_5sec, data_5_sec_ls[1]), header=TRUE, sep=",")
 str(accel_1)
 summary(accel_1)
 ```
