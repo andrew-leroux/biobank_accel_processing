@@ -273,6 +273,8 @@ Identifying "good" accelerometry data typically has two major components.
 The first component is to determine whether the data are reliable (i.e. was the device appropriately calibrated). 
 Once the a particular devices' data has been deemed "reliable", one then identifies participant complinace with weartime protocols. 
 
+### Identify "good" accelerometry data: reliable data
+
 Here, we opt for a conservative definition of "reliable" data based on variables derived from the UK Biobank team. Specifically, we use three UK Biobank derived variables which relate to accelerometry data quality which are described in the [data showcase](http://biobank.ndph.ox.ac.uk/showcase/) on the UK Biobank website. These varibales are: 
 
 1. [Data field 90015](http://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=90015): Did the sbject have at least 72 hours in each one hour period of the 24-hour cycle (across multiple days)
@@ -291,8 +293,7 @@ xdf     <- read_rds(file.path(data_path_accel_quality_flags, data_accel_quality_
 xdf <- xdf %>% 
   mutate(
     ## create an indicator of whether accelerometry data was deeemed "good" by UKB team
-    "good_accel_data_ukb" = invitation_to_physical_activity_study_acceptance %in% "Completed" &
-                            data_quality_good_wear_time %in% "Yes" &
+    "good_accel_data_ukb" = data_quality_good_wear_time %in% "Yes" &
                             data_quality_good_calibration %in% "Yes" & 
                             data_quality_calibrated_on_own_data %in% "Yes"
       ) %>% 
@@ -301,15 +302,27 @@ xdf <- xdf %>%
 dim(xdf)
 ```
 
+Two important notes. First, the data we load with data quality flags has already removed participants who have withdrawn consent to participant in the study. This is a critical part of any data analysis pipeline using the UK Biobank data. Second, any participants who did not complete the accelerometry portion of the study will have missing values for these data quality variables and will thus be filtered out using the code above. 
 
 
-Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour wear time protocol. That is, participants were instructed to wear the devices continuously. As such, we determiend a "compliant" (i.e. good) calendar day of data as one where the participant was estimated to be wearing the device at least 95\% of the day (1368 minutes). Estimated wear time is calculated using Correspondingly, adherence 
+### Identify "good" accelerometry data: weartime protocol
+
+Regarding weartime protocol, the UK Biobank accelerometry study had a 24-hour wear time protocol. That is, participants were instructed to wear the devices continuously. We determiend a "compliant" (i.e. good) calendar day of data as one where the participant was estimated to be wearing the device at least 95\% of the day (1368 minutes). Estimated wear time is calculated using the 1440+ imputation data matrix as imputation was done whenever the UK Biobank team determined an individual was likely not wearing the device. Thus, imputation indicators act as a reproducible proxy for estimated wear/non-wear time. We note using these imputation indicators suggests a very high degree of compliance with weartime protocols relative to other studies with 24 hour weartime protocols. This may suggest an overly optimistic wear time assessment, though we do not pursue this further at the moment.
 
 
 ```{r identify_good_accel_data_weartime}
+## re-name acceleration columns to be easier to work with in matrix/data frame operations
+accel_cols <- paste0("MIN",1:1440)
+colnames(accel_mat) <- colnames(impute_mat) <- c("date","eid",accel_cols)
 
-
+## calcualate percent of observed day data which are good, then define a "good" 
+## day as those with less than 5% imputed data
+impute_mat$pct_good_obs <- rowSums(impute_mat[,utimes], na.rm=TRUE)/(1440*12)
+impute_mat$good_day     <- as.numeric(impute_mat$pct_good_obs >= 0.95)
 ```
+
+
+
 
 
 ## Propose a method for handling imputed and/or missing data
