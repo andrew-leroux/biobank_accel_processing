@@ -1,5 +1,5 @@
 ## read in data path information
-source(file.path(".","code","make_data_directories.R"))
+source(file.path(".","make_data_directories.R"))
 
 ## If packages are not already installed, first install them and then
 ## load all requisite packages

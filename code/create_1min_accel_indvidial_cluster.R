@@ -1,5 +1,5 @@
 ## read in data path information
-source(file.path(".","code","make_data_directories.R"))
+source(file.path(".","make_data_directories.R"))
 
 ## get array index associated with current batch job
 arr_inx <- as.numeric(commandArgs(trailingOnly = TRUE))
