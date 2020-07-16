@@ -1,8 +1,0 @@
-Loading conda_R/3.6.x
-Error in file(filename, "r", encoding = encoding) : 
-  cannot open the connection
-Calls: source -> file
-In addition: Warning message:
-In file(filename, "r", encoding = encoding) :
-  cannot open file './code/make_data_directories.R': No such file or directory
-Execution halted

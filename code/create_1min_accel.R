@@ -3,7 +3,7 @@ source(file.path(".","code","make_data_directories.R"))
 
 ## If packages are not already installed, first install them and then
 ## load all requisite packages
-pckgs <- c("readr","tidyr","dplyr","lubridate","stringr")
+pckgs <- c("remotes","readr","tidyr","dplyr","lubridate","stringr")
 sapply(pckgs, function(x) if(!require(x,character.only=TRUE,quietly=TRUE)) {
   install.packages(x)
   require(x, character.only=TRUE)
@@ -58,8 +58,8 @@ for(i in 1:nid){
       ## obtain mean and number of not imputed minutes
       summarize("acceleration" = mean(acceleration,na.rm=TRUE),
                 "imputed" = sum(1-imputed,na.rm=TRUE),
-                "eid" = eid[1]) %>%
-      ungroup()
+                "eid" = eid[1], 
+                .groups="drop") 
   
   ## transform to wide format for accelration and imputation separately using tidyr::spread
   accel_mat_i  <- adf_i %>% select(-imputed) %>% spread(time_vec,acceleration, drop=FALSE)
